@@ -5,6 +5,7 @@ import {aesGcmDecrypt, aesGcmEncrypt, BUF0, BUF16, hide, lock, sha256, timestamp
 import { AppInfo, DeviceInfo, generateDeviceInfo, getAppInfo, Platform } from "./device";
 import {Encodable} from "./protobuf";
 import {getRawTlv} from "./tlv";
+import {LoginErrorCode} from "../errors";
 
 import Network from "./network";
 import Ecdh from "./ecdh";
@@ -44,14 +45,6 @@ export enum QrcodeResult {
     WaitingForScan = 0x30,
     WaitingForConfirm = 0x35,
     Canceled = 0x36,
-}
-
-export enum NTResult {
-    TokenExpired = 140022015,
-    UnusualVerify = 140022011,
-    NewDeviceVerify = 140022010,
-    CaptchaVerify = 140022008,
-    Success = 0,
 }
 
 export interface BaseClient {
@@ -119,7 +112,8 @@ export class BaseClient extends EventEmitter {
         exchangeKey: BUF0,
         keySig: BUF0,
         cookies: "",
-        unusualSig: BUF0
+        unusualSig: BUF0,
+        tempPwd: BUF0
     }
 
     protected interval = 10;
@@ -647,7 +641,7 @@ function buildNTLoginPacketBody(this: BaseClient, credential: Buffer) {
     });
 }
 
-function parseNTLoginPacketBody(this: BaseClient, encrypted: Buffer): Buffer {
+function parseNTLoginPacketBody(this: BaseClient, encrypted: Buffer): LoginErrorCode {
     const rawPb = pb.decode(encrypted);
     const inner = pb.decode(aesGcmDecrypt(rawPb[3].toBuffer(), this.sig.exchangeKey));
 
@@ -655,13 +649,12 @@ function parseNTLoginPacketBody(this: BaseClient, encrypted: Buffer): Buffer {
         this.sig.tgt = inner[2][1][4];
         this.sig.d2 = inner[2][1][5];
         this.sig.d2Key = inner[2][1][6];
-
-        return inner[2][1][3].toBuffer();
+        this.sig.tempPwd = inner[2][1][3].toBuffer();
     }
     else {
         this.sig.unusualSig = inner[2][3][2];
         this.sig.cookies = inner[1][5][1];
-
-        return BUF0;
     }
+
+    return Number(inner[1][4][1] ?? 0);
 }
