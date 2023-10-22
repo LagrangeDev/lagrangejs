@@ -576,16 +576,25 @@ async function buildUniPacket(this: BaseClient, cmd: string, body: Uint8Array, s
     seq = seq || this[FN_NEXT_SEQ]();
     this.emit("internal.verbose", `send:${cmd} seq:${seq}`, LogLevel.Debug)
 
+    let head;
     const sign = await getSign.call(this, cmd, seq, Buffer.from(body));
-    const head = pb.encode({
-        15: trace(),
-        16: this.uid,
-        24: {
-            1: Buffer.from(sign.sign, "hex"),
-            2: Buffer.from(sign.token, "hex"),
-            3: Buffer.from(sign.extra, "hex")
-        }
-    });
+    if (sign) {
+        head = pb.encode({
+            15: trace(),
+            16: this.uid,
+            24: {
+                1: Buffer.from(sign.sign, "hex"),
+                2: Buffer.from(sign.token, "hex"),
+                3: Buffer.from(sign.extra, "hex")
+            }
+        });
+    }
+    else {
+        head  = pb.encode({
+            15: trace(),
+            16: this.uid,
+        });
+    }
 
     const ssoHeader = new Writer()
         .writeU32(seq)
