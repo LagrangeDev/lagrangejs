@@ -47,7 +47,7 @@ export const signWhiteList = [
 ];
 
 export async function getSign(this: BaseClient, cmd: string, seq: number, src: Buffer) {
-    if (!(cmd in signWhiteList)) return null;
+    if (!signWhiteList.includes(cmd)) return null;
 
     const params = {
         cmd: cmd,
