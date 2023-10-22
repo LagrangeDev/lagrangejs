@@ -283,7 +283,7 @@ export class BaseClient extends EventEmitter {
 
             const login = buildLoginPacket.call(this, "wtlogin.login", body)
             const response = await this.sendUni("wtlogin.login", login);
-            decodeLoginResponse.call(this, response);
+            await decodeLoginResponse.call(this, response);
         }
         else {
             let message;
@@ -723,7 +723,7 @@ function decodeT119(this: BaseClient, t119: Buffer) {
     return { token, nickname, gender, age }
 }
 
-function decodeLoginResponse(this: BaseClient, payload: Buffer): any {
+async function decodeLoginResponse(this: BaseClient, payload: Buffer) {
     payload = tea.decrypt(payload.slice(16, payload.length - 1), this[ECDH192].shareKey);
     const r = Readable.from(payload, {objectMode: false});
     r.read(2);
@@ -733,9 +733,10 @@ function decodeLoginResponse(this: BaseClient, payload: Buffer): any {
 
     if (type === 0) {
         const {token, nickname, gender, age} = decodeT119.call(this, t[0x119]);
-        return register.call(this).then(() => {
+        await register.call(this).then(() => {
             if (this[IS_ONLINE]) {
                 this.emit("internal.online", token, nickname, gender, age);
+                return true;
             }
         });
     }
@@ -757,4 +758,5 @@ function decodeLoginResponse(this: BaseClient, payload: Buffer): any {
     }
 
     this.emit("internal.error.login", type, `[登陆失败]未知错误`);
+    return false;
 }
