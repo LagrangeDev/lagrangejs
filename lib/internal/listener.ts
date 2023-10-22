@@ -1,7 +1,33 @@
 import * as fs from "fs";
 import * as path from "path";
+import * as pb from "../core/protobuf";
 import { PNG } from "pngjs";
 import {Client} from "../client";
+
+async function msgPushListener(this: Client, payload: Buffer) {
+    const packet = pb.decode(payload);
+    this.logger.trace(`recv: MsgPush type: ${packet[1][2][1]}`);
+
+    switch (packet[1][2][1]) {
+        case 82: // group msg
+        case 166: // friend msg
+    }
+}
+
+const events = {
+    "trpc.msg.olpush.OlPushService.MsgPush": msgPushListener
+};
+
+/** 事件总线, 在这里捕获奇怪的错误 */
+async function eventsListener(this: Client, cmd: string, payload: Buffer, seq: number) {
+    try {
+        await Reflect.get(events, cmd)?.call(this, payload, seq);
+    }
+    catch (e) {
+        this.logger.trace(e);
+    }
+}
+
 
 function logQrcode(img: Buffer) {
     const png = PNG.sync.read(img);
@@ -49,4 +75,5 @@ export function bindInternalListeners(this: Client) {
     this.on("internal.token", tokenUpdatedListener);
     this.on("internal.qrcode", qrcodeListener);
     this.on("internal.slider", sliderListener);
+    this.on("internal.sso", eventsListener);
 }
