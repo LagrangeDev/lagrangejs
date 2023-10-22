@@ -56,7 +56,7 @@ export class Client extends BaseClient {
         catch {
             device = generateDeviceInfo(uin);
             regenerate = true;
-            fs.writeFile(deviceFile, JSON.stringify(device, null, 4), NOOP);
+            fs.writeFileSync(deviceFile, JSON.stringify(device, null, 4));
         }
 
         try {
