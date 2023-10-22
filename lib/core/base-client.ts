@@ -40,11 +40,11 @@ export enum LogLevel {
 }
 
 export enum QrcodeResult {
-    OtherError = 0,
-    Timeout = 0x11,
-    WaitingForScan = 0x30,
-    WaitingForConfirm = 0x35,
-    Canceled = 0x36,
+    Confirmed = 0,
+    CodeExpired = 17,
+    WaitingForScan = 48,
+    WaitingForConfirm = 53,
+    Canceled = 54,
 }
 
 export interface BaseClient {
@@ -209,13 +209,12 @@ export class BaseClient extends EventEmitter {
             const stream = Readable.from(payload, {objectMode: false});
             stream.read(54);
             const retcode = stream.read(1)[0];
-            stream.read(stream.read(2).readUInt16BE());
+            const qrSig = stream.read(stream.read(2).readUInt16BE());
             stream.read(2);
 
             const t = readTlv(stream);
-            if (!retcode && t[0x17] && t[0xd1]) {
-                const tlv = pb.decode(t[0xd1]);
-                this.sig.qrSig = tlv[3];
+            if (!retcode && t[0x17]) {
+                this.sig.qrSig = qrSig;
                 this.emit("internal.qrcode", t[0x17]);
             }
             else {
@@ -228,11 +227,10 @@ export class BaseClient extends EventEmitter {
         let retcode = -1, uin, t106, t16a, t318, tgtgt
         if (!this.sig.qrSig.length)  return { retcode, uin, t106, t16a, t318, tgtgt }
         const body = new Writer()
-            .writeTlv(this.sig.qrSig)
+            .writeU16(this.sig.qrSig.length).writeBytes(this.sig.qrSig)
             .writeU64(0)
             .writeU32(0)
             .writeU8(0)
-            .writeU16(0)
             .writeU8(0x03).read();
         const pkt = buildCode2dPacket.call(this, 0x12, body);
 
@@ -240,22 +238,14 @@ export class BaseClient extends EventEmitter {
             let payload = await this[FN_SEND](pkt);
             payload = tea.decrypt(payload.slice(16, -1), this[ECDH192].shareKey);
             const stream = Readable.from(payload, { objectMode: false });
-            stream.read(48);
-            let len = stream.read(2).readUInt16BE();
-            if (len > 0) {
-                len--;
-                if (stream.read(1)[0] === 2) {
-                    stream.read(8);
-                    len -= 8;
-                }
-                if (len > 0) stream.read(len);
-            }
-            stream.read(4)
+            const length = stream.read(4).readUInt32BE();
+            stream.read(4);
+            const cmd = stream.read(2).readUInt16BE();
+            stream.read(40);
+            const appId = stream.read(4).readUInt32BE();
             retcode = stream.read(1)[0]
             if (retcode === 0) {
-                stream.read(4);
-                uin = stream.read(4).readUInt32BE() as number;
-                stream.read(6);
+                stream.read(12);
                 const t = readTlv(stream);
                 t106 = t[0x18];
                 t16a = t[0x19];
