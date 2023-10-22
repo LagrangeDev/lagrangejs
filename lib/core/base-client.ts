@@ -106,7 +106,7 @@ export class BaseClient extends EventEmitter {
         tgtgt: BUF0,
         tgt: BUF0,
         d2: BUF0,
-        d2Key: BUF0,
+        d2Key: BUF16,
         qrSig: BUF0,
 
         exchangeKey: BUF0,
@@ -321,12 +321,12 @@ export class BaseClient extends EventEmitter {
 
         const resp = await this.sendUni("trpc.login.ecdh.EcdhService.SsoKeyExchange", packet);
         const pbResp = pb.decode(resp);
-        const shareKey = this[ECDH256].exchange(pbResp[3]);
-        const decrypted = aesGcmDecrypt(pbResp[1], shareKey);
+        const shareKey = this[ECDH256].exchange(pbResp[3].toBuffer());
+        const decrypted = aesGcmDecrypt(pbResp[1].toBuffer(), shareKey);
         const pbDecrypted = pb.decode(decrypted);
 
-        this.sig.exchangeKey = pbDecrypted[1];
-        this.sig.keySig = pbDecrypted[2];
+        this.sig.exchangeKey = pbDecrypted[1].toBuffer();
+        this.sig.keySig = pbDecrypted[2].toBuffer();
     }
 
     async tokenLogin(token: Buffer) {
@@ -384,8 +384,6 @@ export class BaseClient extends EventEmitter {
 
     /** 发送一个业务包并等待返回 */
     async sendUni(cmd: string, body: Uint8Array, timeout = 5) {
-        if (!this[IS_ONLINE]) throw new ApiRejection(-1, `client not online`);
-
         return this[FN_SEND](buildUniPacket.call(this, cmd, body), timeout);
     }
 }
@@ -545,8 +543,10 @@ function buildUniPacket(this: BaseClient, cmd: string, body: Uint8Array, seq: nu
         15: trace(),
         16: this.uid,
         24: {
-            1: BUF0, // TODO: Sign
-            3: BUF0 // TODO: Extra
+            1: Buffer.alloc(20), // TODO: Sign
+            3: {
+                2: this.appInfo.packageSign
+            } // TODO: Extra
         }
     });
 
@@ -575,7 +575,7 @@ function buildUniPacket(this: BaseClient, cmd: string, body: Uint8Array, seq: nu
         .writeWithLength(this.sig.d2)
         .writeU8(0)
         .writeWithLength(this.uin.toString())
-        .writeWithLength(encrypted).read();
+        .writeBytes(encrypted).read();
 
     return new Writer().writeWithLength(service).read();
 }

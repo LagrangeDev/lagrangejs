@@ -53,6 +53,8 @@ export const aesGcmDecrypt = (data: Buffer, key: BinaryLike) => {
     const cipher = data.slice(12, data.length - 16);
 
     const decipher = createDecipheriv("aes-256-gcm", key, iv);
+    decipher.setAuthTag(tag);
+
     const plain = decipher.update(cipher);
     const final = decipher.final();
 

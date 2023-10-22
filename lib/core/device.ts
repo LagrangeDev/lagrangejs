@@ -57,8 +57,8 @@ const macOS: AppInfo = {
 
 const appList: { [platform in Platform]: AppInfo } =  {
     [Platform.Windows]: linux, // TODO: AppInfo for windows
-    [Platform.Linux]: macOS,
-    [Platform.MacOS]: linux,
+    [Platform.Linux]: linux,
+    [Platform.MacOS]: macOS,
 }
 
 export function getAppInfo(p: Platform): AppInfo {
@@ -66,10 +66,10 @@ export function getAppInfo(p: Platform): AppInfo {
 }
 
 export function generateDeviceInfo(uin: string | number){
-    const guid = typeof uin === "string" ? uin : generateImei();
+    const guid = typeof uin === "string" ? uin : md5(uin.toString()).toString("hex");
     return {
         guid: guid,
-        deviceName: `Lagrange-${Buffer.from(md5(guid.toString()).slice(0, 3)).toString("hex")}`,
+        deviceName: `Lagrange-${Buffer.from(md5(guid.toString()).slice(0, 3)).toString("hex").toUpperCase()}`,
         systemKernel: "Windows 10.0.19042",
         kernelVersion: "10.0.19042.0",
     }

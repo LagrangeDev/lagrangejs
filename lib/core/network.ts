@@ -51,13 +51,13 @@ export default class Network extends Socket {
     join(cb = NOOP) {
         if (this.connecting) return;
         if (this.connected) return cb();
+        this.resolve();
         this.removeAllListeners("connect");
         this.connect(this.port, this.host, () => {
             this.connected = true;
             this.emit("connect2");
             cb();
         })
-        this.resolve();
     }
 
     private resolve() {
