@@ -125,7 +125,7 @@ const qrMap: { [tag: number]: (this: BaseClient, ...args: any[]) => Writer } = {
             .writeU32(0)
             .writeU32(this.appInfo.appId)
             .writeU32(this.appInfo.subAppId)
-            .writeBytes(this.deviceInfo.guid)
+            .writeBytes(Buffer.from(this.deviceInfo.guid, "hex"))
             .writeTlv(this.appInfo.packageName)
             .writeTlv(this.appInfo.ptVersion)
             .writeTlv(this.appInfo.packageName)
@@ -147,10 +147,9 @@ const qrMap: { [tag: number]: (this: BaseClient, ...args: any[]) => Writer } = {
             .writeU32(this.appInfo.mainSigMap) // misc bitmap
             .writeU32(0)
             .writeU8(0)
-            .writeU32(0);
     },
     0x33: function () {
-        return new Writer().writeBytes(this.deviceInfo.guid);
+        return new Writer().writeBytes(Buffer.from(this.deviceInfo.guid, "hex"));
     },
     0x35: function () {
         return new Writer().writeU32(this.appInfo.ptOsVersion);
@@ -165,7 +164,7 @@ const qrMap: { [tag: number]: (this: BaseClient, ...args: any[]) => Writer } = {
                 2: this.deviceInfo.deviceName
             },
             4: {
-                1: 1
+                6: 1
             }
         });
         return new Writer().writeBytes(buf);

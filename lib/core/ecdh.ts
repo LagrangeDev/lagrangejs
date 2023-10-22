@@ -16,7 +16,9 @@ export default class Ecdh {
         this.publicKey = this.ecdh.generateKeys();
         this.shareKey = this.ecdh.computeSecret(serverPub);
 
+
         if (compress) {
+            this.publicKey = Buffer.concat([Buffer.from("02", "hex"), this.publicKey.subarray(1, 25)]);
             this.shareKey = md5(this.shareKey).slice(0, 16);
         }
     }

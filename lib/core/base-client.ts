@@ -200,7 +200,8 @@ export class BaseClient extends EventEmitter {
             .writeBytes(t(0x33, true))
             .writeBytes(t(0x35, true))
             .writeBytes(t(0x66, true))
-            .writeBytes(t(0xd1, true)).read();
+            .writeBytes(t(0xd1, true))
+            .writeU8(0x03).read();
         const packet = buildCode2dPacket.call(this, 0x31, body);
 
         this[FN_SEND](packet).then(payload => {
@@ -208,11 +209,13 @@ export class BaseClient extends EventEmitter {
             const stream = Readable.from(payload, {objectMode: false});
             stream.read(54);
             const retcode = stream.read(1)[0];
-            const qrsig = stream.read(stream.read(2).readUInt16BE());
+            stream.read(stream.read(2).readUInt16BE());
             stream.read(2);
+
             const t = readTlv(stream);
-            if (!retcode && t[0x17]) {
-                this.sig.qrSig = qrsig;
+            if (!retcode && t[0x17] && t[0xd1]) {
+                const tlv = pb.decode(t[0xd1]);
+                this.sig.qrSig = tlv[3];
                 this.emit("internal.qrcode", t[0x17]);
             }
             else {
@@ -229,7 +232,8 @@ export class BaseClient extends EventEmitter {
             .writeU64(0)
             .writeU32(0)
             .writeU8(0)
-            .writeU16(0).read();
+            .writeU16(0)
+            .writeU8(0x03).read();
         const pkt = buildCode2dPacket.call(this, 0x12, body);
 
         try {
@@ -592,12 +596,12 @@ function buildCode2dPacket(this: BaseClient, cmdid: number, body: Buffer) {
         .writeU32(timestamp())
         .writeU8(0x02) // packetstart
 
-        .writeU16(44 + body.length)
+        .writeU16(49 + body.length)
         .writeU16(cmdid)
         .writeBytes(Buffer.alloc(21))
         .writeU8(3)
         .writeU32(50)
-        .writeBytes(Buffer.alloc(11))
+        .writeBytes(Buffer.alloc(14))
         .writeU32(this.appInfo.appId)
         .writeBytes(body).read();
 
@@ -608,7 +612,34 @@ function buildLoginPacket(this: BaseClient, cmd: wtlogin, body: Buffer) {
     this[FN_NEXT_SEQ]();
     this.emit("internal.verbose", `send:${cmd} seq:${this.sig.seq}`, LogLevel.Debug);
 
-    return buildUniPacket.call(this, cmd, body);
+    const encrypted = tea.encrypt(body, this[ECDH192].shareKey);
+
+    const writer = new Writer()
+        .writeU16(8001) // ver
+        .writeU16(cmd == "wtlogin.login" ? 2064 : 2066)
+        .writeU16(0) // dummy sequence
+        .writeU32(this.uin)
+        .writeU8(3) // extVer
+        .writeU8(135) // cmdVer
+        .writeU32(0)
+        .writeU8(19)
+        .writeU16(0) // insid
+        .writeU16(this.appInfo.appClientVersion)
+        .writeU32(0) // retryTime
+        .writeU8(1)
+        .writeU8(1)
+        .writeBytes(BUF16)
+        .writeU16(0x102)
+        .writeU16(this[ECDH192].publicKey.length).writeBytes(this[ECDH192].publicKey)
+        .writeBytes(encrypted)
+        .writeU8(3).read();
+
+    const frame = new Writer()
+        .writeU8(2)
+        .writeU16(writer.length + 2 + 1)
+        .writeBytes(writer).read();
+
+    return buildUniPacket.call(this, cmd, frame);
 }
 
 /** cridential type could be Tlv106**/
