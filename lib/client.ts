@@ -5,6 +5,7 @@ import * as log4js from "log4js"
 import {BaseClient, DeviceInfo, generateDeviceInfo, Platform} from "./core";
 import {EventMap} from "./events";
 import {md5, NOOP} from "./core/constants";
+import {bindInternalListeners} from "./internal/listener";
 
 export interface Client extends BaseClient {
     on<T extends keyof EventMap>(event: T, listener: EventMap<this>[T]): this
@@ -82,6 +83,12 @@ export class Client extends BaseClient {
                 TempPassword: ""
             }
         } as SavedToken;
+
+        bindInternalListeners.call(this);
+        this.on("internal.verbose", (verbose, level) => {
+            const list: Exclude<LogLevel, "off">[] = ["fatal", "mark", "error", "warn", "info", "trace"]
+            this.logger[list[level]](verbose)
+        });
 
         if (!this.config.autoServer) this.setRemoteServer("msfwifi.3g.qq.com", 8080);
     }
