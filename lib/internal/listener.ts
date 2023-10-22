@@ -3,14 +3,18 @@ import * as path from "path";
 import * as pb from "../core/protobuf";
 import { PNG } from "pngjs";
 import {Client} from "../client";
+import { Message } from "../message/message";
+import {handlePrivateMsg} from "./msgpush";
 
 async function msgPushListener(this: Client, payload: Buffer) {
-    const packet = pb.decode(payload);
-    this.logger.trace(`recv: MsgPush type: ${packet[1][2][1]}`);
+    const proto = pb.decode(payload);
+    this.logger.trace(`recv: MsgPush type: ${proto[1][2][1]}`);
 
-    switch (packet[1][2][1]) {
+    switch (proto[1][2][1]) {
         case 82: // group msg
+            return;
         case 166: // friend msg
+            handlePrivateMsg.call(this, proto[1]);
     }
 }
 
