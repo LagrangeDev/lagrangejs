@@ -105,7 +105,7 @@ export class Client extends BaseClient {
         try {
             return await this.tokenLogin(Buffer.from(this.token.Session.TempPassword, "base64")); // EasyLogin
         }
-        catch {
+        catch(e) {
             if (this.token.PasswordMd5 && this.token.Uid) { // 检测Uid的目的是确保之前登陆过
                 return await this.passwordLogin(Buffer.from(this.token.PasswordMd5, "hex"));
             }

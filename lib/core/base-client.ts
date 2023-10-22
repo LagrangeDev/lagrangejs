@@ -358,7 +358,7 @@ export class BaseClient extends EventEmitter {
     }
 
     async tokenLogin(token: Buffer) {
-        if (!this.sig.keySig || !this.sig.exchangeKey) await this.keyExchange();
+        if (!this.sig.keySig.length || !this.sig.exchangeKey.length) await this.keyExchange();
 
         const packet = buildNTLoginPacketBody.call(this, token);
         const response = await this.sendUni("trpc.login.ecdh.EcdhService.SsoNTLoginEasyLogin", packet);
@@ -366,7 +366,7 @@ export class BaseClient extends EventEmitter {
     }
 
     async passwordLogin(md5: Buffer) {
-        if (!this.sig.keySig || !this.sig.exchangeKey) await this.keyExchange();
+        if (!this.sig.keySig.length || !this.sig.exchangeKey.length) await this.keyExchange();
 
         const packet = buildNTLoginPacketBody.call(this, getRawTlv(this, 0x106, false, md5));
         const response = await this.sendUni("trpc.login.ecdh.EcdhService.SsoNTLoginPasswordLogin", packet);
@@ -691,25 +691,28 @@ function buildNTLoginPacketBody(this: BaseClient, credential: Buffer) {
                 3: this.appInfo.packageName
             }
         },
-        2: credential
+        2: {
+            1: credential
+        }
     };
     if (this.sig.cookies !== "") proto[1][5][1] = this.sig.cookies;
 
     return pb.encode({
         1: this.sig.keySig,
         3: aesGcmEncrypt(pb.encode(proto), this.sig.exchangeKey),
-        4: 3
+        4: 1
     });
 }
 
 function decodeNTLoginResponse(this: BaseClient, encrypted: Buffer): LoginErrorCode {
     const rawPb = pb.decode(encrypted);
-    const inner = pb.decode(aesGcmDecrypt(rawPb[3].toBuffer(), this.sig.exchangeKey));
+    const decrypted = aesGcmDecrypt(rawPb[3].toBuffer(), this.sig.exchangeKey);
+    const inner = pb.decode(decrypted);
 
     if (inner[2][1]) {
-        this.sig.tgt = inner[2][1][4];
-        this.sig.d2 = inner[2][1][5];
-        this.sig.d2Key = inner[2][1][6];
+        this.sig.tgt = inner[2][1][4].toBuffer();
+        this.sig.d2 = inner[2][1][5].toBuffer();
+        this.sig.d2Key = inner[2][1][6].toBuffer();
         this.sig.tempPwd = inner[2][1][3].toBuffer();
 
         register.call(this).then(() => {
@@ -719,11 +722,16 @@ function decodeNTLoginResponse(this: BaseClient, encrypted: Buffer): LoginErrorC
         });
     }
     else {
-        this.sig.unusualSig = inner[2][3][2];
-        this.sig.cookies = inner[1][5][1];
+        this.sig.unusualSig = inner[2][3][2].toBuffer();
+        this.sig.cookies = inner[1][5][1].toString();
     }
 
-    return Number(inner[1][4][1] ?? 0);
+    try {
+        return Number(inner[1][4][1] ?? 0);
+    }
+    catch {
+        return 0;
+    }
 }
 
 function decodeT119(this: BaseClient, t119: Buffer) {
