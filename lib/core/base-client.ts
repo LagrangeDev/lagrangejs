@@ -466,7 +466,7 @@ async function register(this: BaseClient) {
         const response = await this.sendUni("trpc.qq_new_tech.status_svc.StatusService.Register", packet);
         const pbResponse = pb.decode(response);
 
-        if (pbResponse[2] === "success") {
+        if (pbResponse[2].toString() === "register success") {
             this[IS_ONLINE] = true;
             this[LOGIN_LOCK] = false;
             this[HEARTBEAT] = setInterval(async () => { // Heartbeat.Alive

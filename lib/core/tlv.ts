@@ -109,7 +109,7 @@ const map: { [tag: number]: (this: BaseClient, ...args: any[]) => Writer } = {
     },
     0x144: function () {
         const body = new Writer()
-            .writeU16(5) // tlv cnt
+            .writeU16(4) // tlv cnt
             .writeBytes(packTlv.call(this, 0x16e))
             .writeBytes(packTlv.call(this, 0x147))
             .writeBytes(packTlv.call(this, 0x128))
@@ -117,7 +117,7 @@ const map: { [tag: number]: (this: BaseClient, ...args: any[]) => Writer } = {
         return new Writer().writeBytes(tea.encrypt(body.read(), this.sig.tgtgt));
     },
     0x145: function () {
-        return new Writer().writeBytes(this.deviceInfo.guid);
+        return new Writer().writeBytes(Buffer.from(this.deviceInfo.guid, "hex"));
     },
     0x147: function () {
         return new Writer()
