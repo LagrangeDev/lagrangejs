@@ -82,6 +82,20 @@ const map: { [tag: number]: (this: BaseClient, ...args: any[]) => Writer } = {
             .writeU32(this.appInfo.subSigMap) // sub sigmap
             .writeU8(0); // size of app id list
     },
+    0x124: function () {
+        return new Writer().writeBytes(Buffer.alloc(12)); // brand
+    },
+    0x128: function () {
+        return new Writer()
+            .writeU16(0)
+            .writeU8(0) // guid new
+            .writeU8(1) // guid available
+            .writeU8(0) // guid changed
+            .writeU32(0) // guid flag
+            .writeTlv(this.appInfo.os)
+            .writeTlv(this.deviceInfo.guid)
+            .writeTlv(""); // brand
+    },
     0x141: function () {
         return new Writer()
             .writeU32(7)
@@ -93,11 +107,29 @@ const map: { [tag: number]: (this: BaseClient, ...args: any[]) => Writer } = {
             .writeU16(0)
             .writeTlv(this.appInfo.packageName);
     },
+    0x144: function () {
+        const body = new Writer()
+            .writeU16(5) // tlv cnt
+            .writeBytes(packTlv.call(this, 0x16e))
+            .writeBytes(packTlv.call(this, 0x147))
+            .writeBytes(packTlv.call(this, 0x128))
+            .writeBytes(packTlv.call(this, 0x124));
+        return new Writer().writeBytes(tea.encrypt(body.read(), this.sig.tgtgt));
+    },
     0x145: function () {
         return new Writer().writeBytes(this.deviceInfo.guid);
     },
+    0x147: function () {
+        return new Writer()
+            .writeU32(this.appInfo.appId)
+            .writeTlv(this.appInfo.ptVersion)
+            .writeTlv(this.appInfo.packageName);
+    },
     0x166: function () {
         return new Writer().writeU8(5);
+    },
+    0x16e: function () {
+        return new Writer().writeBytes(this.deviceInfo.deviceName);
     },
     0x177: function () {
         return new Writer()

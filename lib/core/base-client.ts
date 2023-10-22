@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { randomBytes } from "crypto";
 import { Readable } from "stream";
-import {aesGcmDecrypt, aesGcmEncrypt, BUF0, BUF16, hide, lock, sha256, timestamp, trace, unzip} from "./constants";
+import {aesGcmDecrypt, aesGcmEncrypt, BUF0, BUF16, hide, lock, md5, sha256, timestamp, trace, unzip} from "./constants";
 import { AppInfo, DeviceInfo, generateDeviceInfo, getAppInfo, Platform } from "./device";
 import {Encodable} from "./protobuf";
 import {getRawTlv} from "./tlv";
@@ -23,7 +23,6 @@ const NET = Symbol("NET");
 const ECDH256 = Symbol("ECDH256");
 const ECDH192 = Symbol("ECDH192");
 const IS_ONLINE = Symbol("IS_ONLINE");
-const LOGIN_LOCK = Symbol("LOGIN_LOCK");
 const HEARTBEAT = Symbol("HEARTBEAT");
 const SSO_HEARTBEAT = Symbol("SSO_HEARTBEAT");
 const EVENT_KICKOFF = Symbol("EVENT_KICKOFF");
@@ -90,7 +89,6 @@ export interface BaseClient {
 export class BaseClient extends EventEmitter {
 
     private [IS_ONLINE] = false;
-    private [LOGIN_LOCK] = false;
     private [ECDH256] = new Ecdh("exchange", false);
     private [ECDH192] = new Ecdh("wtlogin", true);
     private readonly [NET] = new Network();
@@ -226,6 +224,7 @@ export class BaseClient extends EventEmitter {
     async queryQrcodeResult() {
         let retcode = -1, uin, t106, t16a, t318, tgtgt
         if (!this.sig.qrSig.length)  return { retcode, uin, t106, t16a, t318, tgtgt }
+
         const body = new Writer()
             .writeU16(this.sig.qrSig.length).writeBytes(this.sig.qrSig)
             .writeU64(0)
@@ -264,7 +263,6 @@ export class BaseClient extends EventEmitter {
             this.emit("internal.error.network", -2, "server is busy");
         }
         else if (retcode === 0 && t106 && t16a && t318 && tgtgt) {
-
             const t = tlv.getPacker(this)
             const body = new Writer()
                 .writeU16(0x106).writeTlv(t106)
@@ -285,6 +283,29 @@ export class BaseClient extends EventEmitter {
 
             const login = buildLoginPacket.call(this, "wtlogin.login", body)
             const response = await this.sendUni("wtlogin.login", login);
+            decodeLoginResponse.call(this, response);
+        }
+        else {
+            let message;
+            switch (retcode) {
+                case QrcodeResult.CodeExpired:
+                    message = "二维码超时，请重新获取";
+                    break;
+                case QrcodeResult.WaitingForScan:
+                    message = "二维码尚未扫描";
+                    break
+                case QrcodeResult.WaitingForConfirm:
+                    message = "二维码尚未确认";
+                    break;
+                case QrcodeResult.Canceled:
+                    message = "二维码被取消，请重新获取";
+                    break;
+                default:
+                    message = "扫码遇到未知错误，请重新获取";
+                    break;
+            }
+            this.sig.qrSig = BUF0;
+            this.emit("internal.error.qrcode", retcode, message);
         }
     }
 
@@ -328,7 +349,7 @@ export class BaseClient extends EventEmitter {
 
         const packet = buildNTLoginPacketBody.call(this, token);
         const response = await this.sendUni("trpc.login.ecdh.EcdhService.SsoNTLoginEasyLogin", packet);
-        parseNTLoginPacketBody.call(this, response);
+        decodeNTLoginResponse.call(this, response);
     }
 
     async passwordLogin(md5: Buffer) {
@@ -336,7 +357,7 @@ export class BaseClient extends EventEmitter {
 
         const packet = buildNTLoginPacketBody.call(this, getRawTlv(this, 0x106, false, md5));
         const response = await this.sendUni("trpc.login.ecdh.EcdhService.SsoNTLoginPasswordLogin", packet);
-        parseNTLoginPacketBody.call(this, response);
+        decodeNTLoginResponse.call(this, response);
     }
 
     terminate() {
@@ -454,7 +475,6 @@ async function register(this: BaseClient) {
 
 async function packetListener(this: BaseClient, pkt: Buffer) {
     this.statistics.recvPacketCount++;
-    this[LOGIN_LOCK] = false;
 
     try {
         const flag = pkt.readUInt8(4);
@@ -662,7 +682,7 @@ function buildNTLoginPacketBody(this: BaseClient, credential: Buffer) {
     });
 }
 
-function parseNTLoginPacketBody(this: BaseClient, encrypted: Buffer): LoginErrorCode {
+function decodeNTLoginResponse(this: BaseClient, encrypted: Buffer): LoginErrorCode {
     const rawPb = pb.decode(encrypted);
     const inner = pb.decode(aesGcmDecrypt(rawPb[3].toBuffer(), this.sig.exchangeKey));
 
@@ -671,6 +691,12 @@ function parseNTLoginPacketBody(this: BaseClient, encrypted: Buffer): LoginError
         this.sig.d2 = inner[2][1][5];
         this.sig.d2Key = inner[2][1][6];
         this.sig.tempPwd = inner[2][1][3].toBuffer();
+
+        register.call(this).then(() => {
+            if (this[IS_ONLINE]) {
+                this.emit("internal.online", this.sig.tempPwd, "", 0, 0);
+            }
+        });
     }
     else {
         this.sig.unusualSig = inner[2][3][2];
@@ -678,4 +704,57 @@ function parseNTLoginPacketBody(this: BaseClient, encrypted: Buffer): LoginError
     }
 
     return Number(inner[1][4][1] ?? 0);
+}
+
+function decodeT119(this: BaseClient, t119: Buffer) {
+    const r = Readable.from(tea.decrypt(t119, this.sig.tgtgt), {objectMode: false});
+    r.read(2);
+    const t = readTlv(r);
+    this.sig.tgt = t[0x10a] || this.sig.tgt;
+    this.sig.d2 = t[0x143] ? t[0x143] : this.sig.d2;
+    this.sig.d2Key = t[0x305] || this.sig.d2Key;
+    this.sig.tgtgt = md5(this.sig.d2Key);
+    this.sig.tempPwd = t[0x106];
+
+    const token = t[0x106];
+    const age = t[0x11a].slice(2, 3).readUInt8();
+    const gender = t[0x11a].slice(3, 4).readUInt8();
+    const nickname = String(t[0x11a].slice(5));
+    return { token, nickname, gender, age }
+}
+
+function decodeLoginResponse(this: BaseClient, payload: Buffer): any {
+    payload = tea.decrypt(payload.slice(16, payload.length - 1), this[ECDH192].shareKey);
+    const r = Readable.from(payload, {objectMode: false});
+    r.read(2);
+    const type = r.read(1).readUInt8() as number;
+    r.read(2);
+    const t = readTlv(r);
+
+    if (type === 0) {
+        const {token, nickname, gender, age} = decodeT119.call(this, t[0x119]);
+        return register.call(this).then(() => {
+            if (this[IS_ONLINE]) {
+                this.emit("internal.online", token, nickname, gender, age);
+            }
+        });
+    }
+
+    if (t[0x149]) {
+        const stream = Readable.from(t[0x149], {objectMode: false});
+        stream.read(2);
+        const title = stream.read(stream.read(2).readUInt16BE()).toString();
+        const content = stream.read(stream.read(2).readUInt16BE()).toString();
+        return this.emit("internal.error.login", type, `[${title}]${content}`);
+    }
+
+    if (t[0x146]) {
+        const stream = Readable.from(t[0x146], {objectMode: false});
+        const version = stream.read(4);
+        const title = stream.read(stream.read(2).readUInt16BE()).toString();
+        const content = stream.read(stream.read(2).readUInt16BE()).toString();
+        return this.emit("internal.error.login", type, `[${title}]${content}`);
+    }
+
+    this.emit("internal.error.login", type, `[登陆失败]未知错误`);
 }
