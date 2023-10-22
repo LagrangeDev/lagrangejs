@@ -41,7 +41,12 @@ function sliderListener(this: Client, url: string) {
     this.emit("system.login.slider", { url });
 }
 
+function tokenUpdatedListener(this: Client, token: string) {
+    fs.writeFileSync(path.join(this.directory, `token-${this.uin}.json`), token);
+}
+
 export function bindInternalListeners(this: Client) {
+    this.on("internal.token", tokenUpdatedListener);
     this.on("internal.qrcode", qrcodeListener);
     this.on("internal.slider", sliderListener);
 }

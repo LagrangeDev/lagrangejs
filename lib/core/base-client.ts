@@ -14,6 +14,7 @@ import Writer from "./writer";
 import * as pb from "./protobuf";
 import * as tea from "./tea";
 import * as tlv from "./tlv";
+import {getSign} from "./sign";
 
 
 const FN_NEXT_SEQ = Symbol("FN_NEXT_SEQ");
@@ -23,6 +24,7 @@ const NET = Symbol("NET");
 const ECDH256 = Symbol("ECDH256");
 const ECDH192 = Symbol("ECDH192");
 const IS_ONLINE = Symbol("IS_ONLINE");
+const LOGIN_LOCK = Symbol("LOGIN_LOCK");
 const HEARTBEAT = Symbol("HEARTBEAT");
 const SSO_HEARTBEAT = Symbol("SSO_HEARTBEAT");
 const EVENT_KICKOFF = Symbol("EVENT_KICKOFF");
@@ -72,7 +74,7 @@ export interface BaseClient {
     on(name: "internal.online", listener: (this: this, token: Buffer, nickname: string, gender: number, age: number) => void): this;
 
     /** token更新 */
-    on(name: "internal.token", listener: (this: this, token: Buffer) => void): this;
+    on(name: "internal.token", listener: (this: this, token: string) => void): this;
 
     /** 服务器强制下线 */
     on(name: "internal.kickoff", listener: (this: this, reason: string) => void): this;
@@ -94,6 +96,7 @@ export class BaseClient extends EventEmitter {
     private readonly [NET] = new Network();
     private readonly [HANDLERS] = new Map<number, (buf: Buffer) => void>();
 
+    private [LOGIN_LOCK] = false;
     private [HEARTBEAT]: NodeJS.Timeout | undefined;
     private [SSO_HEARTBEAT]: NodeJS.Timeout | undefined;
 
@@ -130,8 +133,11 @@ export class BaseClient extends EventEmitter {
         remotePort: 0,
     }
 
-    constructor(public readonly uin: number, public readonly uid?: string, p: Platform = Platform.Linux, guid?: string) {
+    public uid?: string;
+
+    constructor(public readonly uin: number, uid?: string, p: Platform = Platform.Linux, guid?: string) {
         super();
+        this.uid = uid;
         this.appInfo = getAppInfo(p);
         this.deviceInfo = generateDeviceInfo(guid ?? uin);
 
@@ -153,7 +159,6 @@ export class BaseClient extends EventEmitter {
         this.on("internal.sso", ssoListener);
 
         lock(this, "uin");
-        lock(this, "uid");
         lock(this, "appInfo");
         lock(this, "device");
         lock(this, "sig");
@@ -200,7 +205,7 @@ export class BaseClient extends EventEmitter {
             .writeBytes(t(0x66, true))
             .writeBytes(t(0xd1, true))
             .writeU8(0x03).read();
-        const packet = buildCode2dPacket.call(this, 0x31, body);
+        const packet = await buildCode2dPacket.call(this, 0x31, body);
 
         this[FN_SEND](packet).then(payload => {
             payload = tea.decrypt(payload.slice(16, -1), this[ECDH192].shareKey);
@@ -231,7 +236,7 @@ export class BaseClient extends EventEmitter {
             .writeU32(0)
             .writeU8(0)
             .writeU8(0x03).read();
-        const pkt = buildCode2dPacket.call(this, 0x12, body);
+        const pkt = await buildCode2dPacket.call(this, 0x12, body);
 
         try {
             let payload = await this[FN_SEND](pkt);
@@ -245,26 +250,32 @@ export class BaseClient extends EventEmitter {
             retcode = stream.read(1)[0]
             if (retcode === 0) {
                 stream.read(12);
+                stream.read(2).readUInt16BE(); // tlvCount
                 const t = readTlv(stream);
                 t106 = t[0x18];
                 t16a = t[0x19];
-                t318 = t[0x65];
-                tgtgt = t[0x1e];
+                tgtgt = t[0x1E];
+                this.sig.tgtgt = tgtgt;
             }
         }
         catch {
         }
-        return { retcode, uin, t106, t16a, t318, tgtgt };
+        return { retcode, uin, t106, t16a, tgtgt };
     }
 
     async qrcodeLogin() {
-        const { retcode, uin, t106, t16a, t318, tgtgt } = await this.queryQrcodeResult();
+        if (this[LOGIN_LOCK]) return;
+
+        const { retcode, uin, t106, t16a, tgtgt } = await this.queryQrcodeResult();
         if (retcode < 0) {
             this.emit("internal.error.network", -2, "server is busy");
         }
-        else if (retcode === 0 && t106 && t16a && t318 && tgtgt) {
+        else if (retcode === 0 && t106 && t16a && tgtgt) {
+            this[LOGIN_LOCK] = true;
             const t = tlv.getPacker(this)
             const body = new Writer()
+                .writeU16(0x09) // Internal Command
+                .writeU16(15) // tlv count
                 .writeU16(0x106).writeTlv(t106)
                 .writeBytes(t(0x144))
                 .writeBytes(t(0x116))
@@ -281,8 +292,8 @@ export class BaseClient extends EventEmitter {
                 .writeBytes(t(0x166))
                 .writeBytes(t(0x521)).read();
 
-            const login = buildLoginPacket.call(this, "wtlogin.login", body)
-            const response = await this.sendUni("wtlogin.login", login);
+            const login = await buildLoginPacket.call(this, "wtlogin.login", body);
+            const response = await this[FN_SEND](login);
             await decodeLoginResponse.call(this, response);
         }
         else {
@@ -342,6 +353,8 @@ export class BaseClient extends EventEmitter {
 
         this.sig.exchangeKey = pbDecrypted[1].toBuffer();
         this.sig.keySig = pbDecrypted[2].toBuffer();
+
+        this.emit("internal.verbose", `key xchg successfully, session: ${pbDecrypted[3]}s`, LogLevel.Debug);
     }
 
     async tokenLogin(token: Buffer) {
@@ -392,14 +405,14 @@ export class BaseClient extends EventEmitter {
         });
     }
 
-    writeUni(cmd: string, body: Uint8Array, seq = 0) {
+    async writeUni(cmd: string, body: Uint8Array, seq = 0) {
         this.statistics.sendPacketCount++
-        this[NET].write(buildUniPacket.call(this, cmd, body, seq))
+        this[NET].write(await buildUniPacket.call(this, cmd, body, seq))
     }
 
     /** 发送一个业务包并等待返回 */
     async sendUni(cmd: string, body: Uint8Array, timeout = 5) {
-        return this[FN_SEND](buildUniPacket.call(this, cmd, body), timeout);
+        return this[FN_SEND](await buildUniPacket.call(this, cmd, body), timeout);
     }
 }
 
@@ -455,6 +468,7 @@ async function register(this: BaseClient) {
 
         if (pbResponse[2] === "success") {
             this[IS_ONLINE] = true;
+            this[LOGIN_LOCK] = false;
             this[HEARTBEAT] = setInterval(async () => { // Heartbeat.Alive
 
             }, this.interval * 1000);
@@ -463,6 +477,15 @@ async function register(this: BaseClient) {
                 const ssoHeartBeat = pb.encode({ 1: 1 });
                 await this.sendUni("trpc.qq_new_tech.status_svc.StatusService.SsoHeartBeat", ssoHeartBeat);
             }, this.ssoInterval * 1000);
+
+            this.emit("internal.token", JSON.stringify({
+                Uin: this.uin,
+                Uid: this.uid,
+                PasswordMd5: "",
+                Session: {
+                    TempPassword: this.sig.tempPwd.toString("base64")
+                }
+            }));
         }
         else {
             this.emit("internal.error.token");
@@ -549,18 +572,18 @@ function readTlv(r: Readable) {
     return t;
 }
 
-function buildUniPacket(this: BaseClient, cmd: string, body: Uint8Array, seq: number = 0) {
+async function buildUniPacket(this: BaseClient, cmd: string, body: Uint8Array, seq: number = 0) {
     seq = seq || this[FN_NEXT_SEQ]();
     this.emit("internal.verbose", `send:${cmd} seq:${seq}`, LogLevel.Debug)
 
-    const headSign = pb.encode({
+    const sign = await getSign.call(this, cmd, seq, Buffer.from(body));
+    const head = pb.encode({
         15: trace(),
         16: this.uid,
         24: {
-            1: Buffer.alloc(20), // TODO: Sign
-            3: {
-                2: this.appInfo.packageSign
-            } // TODO: Extra
+            1: Buffer.from(sign.sign, "hex"),
+            2: Buffer.from(sign.token, "hex"),
+            3: Buffer.from(sign.extra, "hex")
         }
     });
 
@@ -576,7 +599,7 @@ function buildUniPacket(this: BaseClient, cmd: string, body: Uint8Array, seq: nu
         .writeWithLength(BUF0) // unknown
         .writeU16(this.appInfo.currentVersion.length + 2) // withPrefix + Uint32
         .writeBytes(this.appInfo.currentVersion)
-        .writeWithLength(headSign).read();
+        .writeWithLength(head).read();
 
     const ssoPacket = new Writer()
         .writeWithLength(ssoHeader)
@@ -619,9 +642,6 @@ function buildCode2dPacket(this: BaseClient, cmdid: number, body: Buffer) {
 }
 
 function buildLoginPacket(this: BaseClient, cmd: wtlogin, body: Buffer) {
-    this[FN_NEXT_SEQ]();
-    this.emit("internal.verbose", `send:${cmd} seq:${this.sig.seq}`, LogLevel.Debug);
-
     const encrypted = tea.encrypt(body, this[ECDH192].shareKey);
 
     const writer = new Writer()
@@ -715,6 +735,7 @@ function decodeT119(this: BaseClient, t119: Buffer) {
     this.sig.d2Key = t[0x305] || this.sig.d2Key;
     this.sig.tgtgt = md5(this.sig.d2Key);
     this.sig.tempPwd = t[0x106];
+    this.uid = pb.decode(t[0x543])[9][11][1].toString();
 
     const token = t[0x106];
     const age = t[0x11a].slice(2, 3).readUInt8();
