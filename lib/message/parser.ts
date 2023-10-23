@@ -23,6 +23,7 @@ export class Parser {
     quotation?: pb.Proto;
     atme = false;
     atall = false;
+    imagePrefix = "";
 
     private exclusive = false;
     private it?: IterableIterator<[number, pb.Proto]>;
@@ -271,11 +272,11 @@ export class Parser {
                         this.parseExclusiveElem(type, proto);
                         break
                     case 53: //commonElem
-                        if (proto[1] === 3) { //flash
-                            this.parseExclusiveElem(3, proto[2][1] ? proto[2][1] : proto[2][2]);
-                        }
-                        else if (proto[1] === 33) { //face(id>255)
+                        if (proto[1] === 33) { //face(id>255)
                             this.parsePartialElem(33, proto[2]);
+                        }
+                        else if (proto[1] === 48) { //image prefix of qqnt
+                            this.imagePrefix = "https://" + proto[2][1][2][3];
                         }
                         break;
                     default:
@@ -287,6 +288,26 @@ export class Parser {
 
     private parseImgElem(proto: pb.Proto, type: "image") {
         let elem: T.ImageElem
+
+        if (proto[34] && proto[34][30] && String(proto[34][30]).includes("&rkey=") && this.imagePrefix) { // QQNT群聊图片
+            elem = {
+                type,
+                file: buildImageFileParam(proto[13].toHex(), proto[25], proto[22], proto[23], proto[20]),
+                url: this.imagePrefix + String(proto[34][30]) + "&spec=0",
+            }
+            this.imagePrefix = "";
+            return elem;
+        }
+        else if (proto[29] && proto[29][30] && String(proto[29][30]).includes("&rkey=") && this.imagePrefix) { // QQNT私聊图片
+            elem = {
+                type,
+                file: buildImageFileParam(proto[7].toHex(), proto[2], proto[9], proto[8], proto[5]),
+                url: this.imagePrefix + String(proto[29][30]) + "&spec=0",
+            }
+            this.imagePrefix = "";
+            return elem;
+        }
+
         if (proto[7]?.toHex) {
             elem = {
                 type,
