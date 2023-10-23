@@ -429,7 +429,13 @@ function onlineListener(this: BaseClient) {
 }
 
 function ssoListener(this: BaseClient, cmd: string, payload: Buffer, seq: number) {
-
+    switch (cmd) {
+        case "trpc.qq_new_tech.status_svc.StatusService.KickNT": {
+            const proto = pb.decode(payload);
+            const msg = proto[4] ? `[${proto[4]}]${proto[3]}` : `[${proto[1]}]${proto[2]}`;
+            this.emit(EVENT_KICKOFF, msg);
+        }
+    }
 }
 
 function lostListener(this: BaseClient) {

@@ -55,6 +55,11 @@ function logQrcode(img: Buffer) {
     console.log(`${color_fg_blk + color_bg_wht}                                       ${color_reset}`);
 }
 
+async function onlineListener(this: Client, token: Buffer, nickname: string, gender: number, age: number) {
+    this.logger.mark(`Welcome, ${nickname} ! 正在加载资源...`);
+    this.emit("system.online");
+}
+
 function qrcodeListener(this: Client, image: Buffer) {
     const file = path.join(this.directory, "qrcode.png");
     fs.writeFile(file, image, () => {
@@ -75,7 +80,15 @@ function tokenUpdatedListener(this: Client, token: string) {
     fs.writeFileSync(path.join(this.directory, `token-${this.uin}.json`), token);
 }
 
+function kickoffListener(this: Client, message: string) {
+    this.logger.warn(message);
+    this.terminate();
+    this.emit("system.offline.kickoff", { message });
+}
+
 export function bindInternalListeners(this: Client) {
+    this.on("internal.online", onlineListener)
+    this.on("internal.kickoff", kickoffListener);
     this.on("internal.token", tokenUpdatedListener);
     this.on("internal.qrcode", qrcodeListener);
     this.on("internal.slider", sliderListener);
