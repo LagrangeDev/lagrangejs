@@ -32,12 +32,6 @@ export interface BfaceElem {
     text: string
 }
 
-/** 魔法表情 */
-export interface MfaceElem {
-    type: "rps" | "dice"
-    id?: number
-}
-
 /** 图片 */
 export interface ImageElem {
     type: "image"
@@ -88,25 +82,6 @@ export interface VideoElem {
     md5?: string
     size?: number
     seconds?: number
-}
-
-/** 地点分享 */
-export interface LocationElem {
-    type: "location"
-    address: string
-    lat: number
-    lng: number
-    name?: string
-    id?: string
-}
-
-/** 链接分享 */
-export interface ShareElem {
-    type: "share"
-    url: string
-    title: string
-    content?: string
-    image?: string
 }
 
 /** JSON */
@@ -172,11 +147,10 @@ export interface Forwardable {
 }
 
 /** 可组合发送的元素 */
-export type ChainElem = TextElem | FaceElem | BfaceElem | MfaceElem | ImageElem | AtElem | ReplyElem;
+export type ChainElem = TextElem | FaceElem | BfaceElem | ImageElem | AtElem | ReplyElem;
 
 /** 注意：只有`ChainElem`中的元素可以组合发送，其他元素只能单独发送 */
-export type MessageElem = TextElem | FaceElem | BfaceElem | MfaceElem | ImageElem | AtElem | ReplyElem
-    | PttElem | VideoElem | JsonElem | XmlElem | LocationElem | ShareElem | FileElem;
+export type MessageElem = TextElem | FaceElem | BfaceElem | ImageElem | AtElem | ReplyElem | PttElem | VideoElem | JsonElem | XmlElem | FileElem;
 
 /** 可通过sendMsg发送的类型集合 (字符串、元素对象，或它们的数组) */
 export type Sendable = string | MessageElem | (string | MessageElem)[];

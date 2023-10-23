@@ -3,15 +3,14 @@ import { PrivateMessage } from "./message/message";
 import {Sendable} from "./message/elements";
 
 export interface MessageRet {
-    message_id: string
     seq: number
-    rand: number
     time: number
 }
 
 export interface MessageEvent {
     /**
      * 快速回复
+     * @param content
      * @param quote 引用这条消息(默认false)
      */
     reply(content: Sendable, quote?: boolean): Promise<MessageRet>;

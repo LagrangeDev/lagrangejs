@@ -182,22 +182,12 @@ export class Parser {
                 content = `{face:${elem.id}}`;
                 break
             case 6: //bface
-                brief = this.getNextText();
-                if (brief.includes("骰子") || brief.includes("猜拳")) {
-                    elem = {
-                        type: brief.includes("骰子") ? "dice" : "rps",
-                        id: proto[12].toBuffer()[16] - 0x30 + 1
-                    }
-                    content = `{${elem.type}:${elem.id}}`;
+                elem = {
+                    type: "bface",
+                    file: proto[4].toHex() + proto[7].toHex() + proto[5],
+                    text: brief.replace(/[[\]]/g, "")
                 }
-                else {
-                    elem = {
-                        type: "bface",
-                        file: proto[4].toHex() + proto[7].toHex() + proto[5],
-                        text: brief.replace(/[[\]]/g, "")
-                    }
-                    content = `{bface:${elem.text}}`;
-                }
+                content = `{bface:${elem.text}}`;
                 break;
             case 4:
             case 8:
