@@ -74,22 +74,3 @@ export function generateDeviceInfo(uin: string | number){
         kernelVersion: "10.0.19042.0",
     }
 }
-
-function generateImei() {
-    let sum: number = 0
-    let final: string = ""
-    for (let i: number = 0; i < 14; i++) {
-        let toAdd: number = Math.floor(Math.random() * 10)
-        final += toAdd
-        if ((i + 1) % 2 == 0) {
-            toAdd *= 2
-            if (toAdd >= 10) {
-                toAdd = (toAdd % 10) + 1
-            }
-        }
-        sum += toAdd
-    }
-    sum = (sum * 9) % 10
-    final += sum
-    return final
-}
