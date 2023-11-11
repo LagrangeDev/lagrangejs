@@ -1,4 +1,3 @@
-import {Contactable} from "./contactable";
 import {User} from "./user";
 import * as pb from "../core/protobuf";
 import {drop} from "../errors";

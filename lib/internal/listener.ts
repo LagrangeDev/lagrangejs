@@ -3,8 +3,8 @@ import * as path from "path";
 import * as pb from "../core/protobuf";
 import { PNG } from "pngjs";
 import {Client} from "../client";
-import { Message } from "../message/message";
 import {handleGroupMsg, handlePrivateMsg} from "./msgpush";
+import {loadFriendList, loadGroupList} from "./internal";
 
 async function msgPushListener(this: Client, payload: Buffer) {
     const proto = pb.decode(payload);
@@ -20,8 +20,45 @@ async function msgPushListener(this: Client, payload: Buffer) {
     }
 }
 
+async function kickListener(this: Client, payload: Buffer) {
+    const proto = pb.decode(payload);
+    const msg = proto[4] ? `[${proto[4]}]${proto[3]}` : `[${proto[1]}]${proto[2]}`;
+    this.emit(Symbol("EVENT_KICKOFF"), msg);
+}
+
+async function syncPushListener(this: Client, payload: Buffer) {
+    const proto = pb.decode(payload);
+    if (proto[3] == 5) {
+        for (let group of proto[6]) {
+            const gid = group[1];
+
+            const info = {
+                "group_id": gid,
+                "group_name": group[9].toString(),
+                "member_count": 0,
+                "max_member_count": 0,
+                "owner_id": 0,
+                "admin_flag": false,
+                "last_join_time": 0,
+                "last_sent_time": 0,
+                "shutup_time_whole": 0,
+                "shutup_time_me": 0,
+                "create_time": 0,
+                "grade": 0,
+                "max_admin_count": 0,
+                "active_member_count": 0,
+                "update_time": 0
+            };
+            this.groupList.set(gid, Object.assign(this.groupList.get(gid) || {}, info));
+            if (this.groupListCallback) this.groupListCallback();
+        }
+    }
+}
+
 const events = {
-    "trpc.msg.olpush.OlPushService.MsgPush": msgPushListener
+    "trpc.msg.olpush.OlPushService.MsgPush": msgPushListener,
+    "trpc.qq_new_tech.status_svc.StatusService.KickNT": kickListener,
+    "trpc.msg.register_proxy.RegisterProxy.InfoSyncPush": syncPushListener
 };
 
 /** 事件总线, 在这里捕获奇怪的错误 */
@@ -59,6 +96,11 @@ function logQrcode(img: Buffer) {
 
 async function onlineListener(this: Client, token: Buffer, nickname: string, gender: number, age: number) {
     this.logger.mark(`Welcome, ${nickname} ! 正在加载资源...`);
+    await Promise.allSettled([
+        loadFriendList.call(this),
+        loadGroupList.call(this)
+    ]);
+    this.logger.mark(`加载了${this.friendList.size}个好友，${this.groupList.size}个群`);
     this.emit("system.online");
 }
 

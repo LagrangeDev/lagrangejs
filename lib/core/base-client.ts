@@ -100,6 +100,7 @@ export class BaseClient extends EventEmitter {
     private [HEARTBEAT]: NodeJS.Timeout | undefined;
     private [SSO_HEARTBEAT]: NodeJS.Timeout | undefined;
 
+    readonly platform: Platform;
     readonly appInfo: AppInfo;
     readonly deviceInfo: DeviceInfo;
     readonly sig = {
@@ -137,6 +138,7 @@ export class BaseClient extends EventEmitter {
 
     constructor(public readonly uin: number, uid?: string, p: Platform = Platform.Linux, guid?: string) {
         super();
+        this.platform = p;
         this.uid = uid;
         this.appInfo = getAppInfo(p);
         this.deviceInfo = generateDeviceInfo(guid ?? uin);
@@ -431,9 +433,7 @@ function onlineListener(this: BaseClient) {
 function ssoListener(this: BaseClient, cmd: string, payload: Buffer, seq: number) {
     switch (cmd) {
         case "trpc.qq_new_tech.status_svc.StatusService.KickNT": {
-            const proto = pb.decode(payload);
-            const msg = proto[4] ? `[${proto[4]}]${proto[3]}` : `[${proto[1]}]${proto[2]}`;
-            this.emit(EVENT_KICKOFF, msg);
+
         }
     }
 }
