@@ -4,7 +4,7 @@ import * as pb from "../core/protobuf";
 import { PNG } from "pngjs";
 import {Client} from "../client";
 import { Message } from "../message/message";
-import {handlePrivateMsg} from "./msgpush";
+import {handleGroupMsg, handlePrivateMsg} from "./msgpush";
 
 async function msgPushListener(this: Client, payload: Buffer) {
     const proto = pb.decode(payload);
@@ -12,9 +12,11 @@ async function msgPushListener(this: Client, payload: Buffer) {
 
     switch (proto[1][2][1]) {
         case 82: // group msg
-            return;
+            handleGroupMsg.call(this, proto[1])
+            break;
         case 166: // friend msg
             handlePrivateMsg.call(this, proto[1]);
+            break;
     }
 }
 

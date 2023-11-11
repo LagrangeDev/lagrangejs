@@ -68,3 +68,22 @@ export class PrivateMessage extends Message {
         super(proto);
     }
 }
+
+export class GroupMessage extends Message {
+    sub_type = "group" as "friend" | "group" | "other" | "self";
+    group_id: number;
+    group_name: string;
+
+    atme: boolean;
+    atall: boolean;
+
+    constructor(proto: pb.Proto) {
+        super(proto);
+
+        this.group_id = proto[1][8][1];
+        this.group_name = proto[1][8][7].toString();
+
+        this.atme = this.parsed.atme;
+        this.atall = this.parsed.atall;
+    }
+}

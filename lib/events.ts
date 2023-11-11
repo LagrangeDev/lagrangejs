@@ -1,5 +1,5 @@
 import {LoginErrorCode} from "./errors";
-import { PrivateMessage } from "./message/message";
+import {GroupMessage, PrivateMessage} from "./message/message";
 import {Sendable} from "./message/elements";
 
 export interface MessageRet {
@@ -18,6 +18,10 @@ export interface MessageEvent {
 
 export interface PrivateMessageEvent extends PrivateMessage, MessageEvent {
     /** 好友对象 */
+}
+
+export interface GroupMessageEvent extends GroupMessage, MessageEvent {
+
 }
 
 export interface EventMap<T = any> {
