@@ -3,8 +3,17 @@ import * as pb from "../core/protobuf";
 import {drop} from "../errors";
 import {Quotable, Sendable} from "../message/elements";
 import {MessageRet} from "../events";
+import {Client} from "../client";
+import {FriendInfo} from "../entities";
+import {hide} from "../core/constants";
 
 export class Friend extends User {
+
+    protected constructor(c: Client, uid: number, private _info?: FriendInfo) {
+        super(c);
+        hide(this, "_info");
+    }
+
     async sendMsg(content: Sendable, source?: Quotable): Promise<MessageRet> {
         const { rich, brief } = await this._preprocess(content, source);
         return this._sendMsg({ 1: rich }, brief);
