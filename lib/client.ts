@@ -6,7 +6,7 @@ import {BaseClient, DeviceInfo, generateDeviceInfo, Platform} from "./core";
 import {EventMap} from "./events";
 import {md5, NOOP} from "./core/constants";
 import {bindInternalListeners} from "./internal/listener";
-import {FriendInfo, GroupInfo} from "./entities";
+import {FriendInfo, GroupInfo, MemberInfo} from "./entities";
 
 export interface Client extends BaseClient {
     on<T extends keyof EventMap>(event: T, listener: EventMap<this>[T]): this
@@ -38,6 +38,8 @@ export class Client extends BaseClient {
 
     readonly friendList = new Map<number, FriendInfo>();
     readonly groupList = new Map<number, GroupInfo>();
+    readonly memberList = new Map<number, Map<number, MemberInfo>>()
+
 
     groupListCallback?: Function;
 

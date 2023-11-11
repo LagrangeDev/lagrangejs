@@ -45,4 +45,54 @@ export class Discuss extends Contactable {
             time: 0,
         };
     }
+
+    private async _fetchMembers() {
+        let token: string | null = null;
+        if (!this.c.memberList.has(this.gid)) this.c.memberList.set(this.gid, new Map);
+
+        try {
+            while (true) {
+                const request = pb.encode({
+                    1: 0xfe7,
+                    2: 3,
+                    4: {
+                        1: this.gid,
+                        2: 5,
+                        3: 2,
+                        4: {
+                            10: true,
+                            11: true,
+                            12: true,
+                            100: true,
+                            101: true,
+                            107: true
+                        }
+                    },
+                    15: token
+                });
+                const response = await this.c.sendUni("OidbSvcTrpcTcp.0xfe7_3", request);
+                const proto = pb.decode(response);
+
+                const list = this.c.memberList.get(this.gid)!
+                for (let member of proto[4][2]) {
+                    const uin = member[1][4]
+                    let info = {
+                        "group_id": this.gid,
+                        "user_id": uin
+                    }
+                    info = Object.assign(list.get(uin) || { }, info)
+                }
+
+                if (proto[15]) {
+                    token = proto[15];
+                }
+                else {
+                    break;
+                }
+            }
+        }
+        catch {
+            this.c.logger.error("加载群员列表超时");
+        }
+    }
 }

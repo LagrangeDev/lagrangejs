@@ -27,3 +27,8 @@ export interface GroupInfo {
     active_member_count?: number;
     update_time: number;
 }
+
+export interface MemberInfo {
+    group_id: number;
+    user_id: number;
+}
