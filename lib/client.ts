@@ -124,6 +124,13 @@ export class Client extends BaseClient {
         }
     }
 
+    async fetchClientKey() {
+        const response = await this.sendOidbSvcTrpcTcp(0x102a, 1, new Uint8Array(), false);
+        const packet = pb.decode(response);
+
+        return packet[4][3].toString();
+    }
+
     sendOidbSvcTrpcTcp(cmd: number, subCmd: number, buffer: Uint8Array, isUid = false) {
         const command = `OidbSvcTrpcTcp.0x${subCmd.toString(16)}_${subCmd}`;
 
