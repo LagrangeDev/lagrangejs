@@ -53,24 +53,20 @@ export class Discuss extends Contactable {
         try {
             while (true) {
                 const request = pb.encode({
-                    1: 0xfe7,
-                    2: 3,
+                    1: this.gid,
+                    2: 5,
+                    3: 2,
                     4: {
-                        1: this.gid,
-                        2: 5,
-                        3: 2,
-                        4: {
-                            10: true,
-                            11: true,
-                            12: true,
-                            100: true,
-                            101: true,
-                            107: true
-                        }
+                        10: true,
+                        11: true,
+                        12: true,
+                        100: true,
+                        101: true,
+                        107: true
                     },
                     15: token
                 });
-                const response = await this.c.sendUni("OidbSvcTrpcTcp.0xfe7_3", request);
+                const response = await this.c.sendOidbSvcTrpcTcp(0xfe7, 3, request);
                 const proto = pb.decode(response);
 
                 const list = this.c.memberList.get(this.gid)!

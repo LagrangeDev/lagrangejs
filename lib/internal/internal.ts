@@ -4,33 +4,29 @@ import {randomBytes} from "crypto";
 
 export async function loadFriendList(this: Client) {
     const request = pb.encode({
-        1: 0xfd4,
-        2: 1,
-        4: {
-            2: 300,
-            4: 0,
-            6: 1,
-            10001: [ {
-                1: 1,
-                2: {
-                    1: [
-                        103, // 个性签名
-                        102, // 备注
-                        20002 // 昵称
-                    ]
-                }
-            },
-                {
-                    1: 4,
-                    2: {
-                        1: [ 100, 101, 102 ]
-                    }
-            } ],
-            10002: [ 13578, 13579, 13573, 13572, 13568 ],
-            10003: 4051
+        2: 300,
+        4: 0,
+        6: 1,
+        10001: [ {
+            1: 1,
+            2: {
+                1: [
+                    103, // 个性签名
+                    102, // 备注
+                    20002 // 昵称
+                ]
+            }
         },
+            {
+                1: 4,
+                2: {
+                    1: [ 100, 101, 102 ]
+                }
+            } ],
+        10002: [ 13578, 13579, 13573, 13572, 13568 ],
+        10003: 4051
     });
-    const response = await this.sendUni("OidbSvcTrpcTcp.0xfd4_1", request);
+    const response = await this.sendOidbSvcTrpcTcp(0xfd4, 1, request);
     const proto = pb.decode(response);
 
     for (let friend of proto[4][101]) {

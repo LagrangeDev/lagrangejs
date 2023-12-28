@@ -1,6 +1,7 @@
 import * as path from "path";
 import * as fs from "fs";
 import * as log4js from "log4js"
+import * as pb from "./core/protobuf";
 
 import {BaseClient, DeviceInfo, generateDeviceInfo, Platform} from "./core";
 import {EventMap} from "./events";
@@ -121,6 +122,18 @@ export class Client extends BaseClient {
                 return await (this.sig.qrSig.length ? this.qrcodeLogin() : this.fetchQrcode());
             }
         }
+    }
+
+    sendOidbSvcTrpcTcp(cmd: number, subCmd: number, buffer: Uint8Array, isUid = false) {
+        const command = `OidbSvcTrpcTcp.0x${subCmd.toString(16)}_${subCmd}`;
+
+        const result = pb.encode({
+            1: cmd,
+            2: subCmd,
+            4: buffer,
+            12: isUid
+        });
+        return this.sendUni(command, result);
     }
 }
 
