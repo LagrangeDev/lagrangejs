@@ -19,18 +19,6 @@ export class Friend extends User {
         return this._sendMsg({ 1: rich }, brief);
     }
 
-    async sendLike(): Promise<boolean> {
-        const request = pb.encode({
-            11: this.uid,
-            12: 71,
-            13: 1
-        });
-
-        const response = await this.c.sendOidbSvcTrpcTcp(0x7e5, 104, request);
-        const packet = pb.decode(response);
-        return !packet[3]
-    }
-
     protected async _sendMsg(proto3: pb.Encodable, brief: string, file = false) {
         const seq = this.c.sig.seq + 1;
         const body = pb.encode({
