@@ -30,6 +30,8 @@ export interface GroupInfo {
 
 export interface MemberInfo {
     uid:string
+    card?:string
+    nickname?:string
     group_id: number;
     user_id: number;
 }

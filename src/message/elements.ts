@@ -21,6 +21,7 @@ export interface FaceElem {
     type: "face" | "sface"
     /** face为0~324，sface不明 */
     id: number
+    qlottie?:string
     text?: string
 }
 

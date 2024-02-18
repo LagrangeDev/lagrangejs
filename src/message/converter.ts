@@ -1,8 +1,10 @@
 import * as pb from "../core/protobuf";
+import {Image} from "./image";
 import {AtElem, BfaceElem, FaceElem, FileElem, ImageElem, JsonElem, MessageElem,
     PttElem, ReplyElem, Sendable, TextElem, VideoElem, XmlElem} from "./elements";
 import {FACE_OLD_BUF, facemap} from "./face";
 import {deflateSync} from "zlib";
+import {Contactable} from "../entities/contactable";
 
 const BUF1 = Buffer.from([1]);
 
@@ -28,32 +30,32 @@ export class Converter {
     /** 预览文字 */
     brief = ""
     tasks:Promise<void>[]=[]
-    public constructor(content: Sendable, private ext?: ConverterExt) {
-        if (typeof content === "string") {
-            this._text(content);
+    public constructor(private content: Sendable) {
+
+    }
+    async convert(contactable:Contactable){
+        if (typeof this.content === "string") {
+            this._text(this.content);
         }
-        else if (Array.isArray(content)) {
-            for (let elem of content) {
-                this._convert(elem);
-            }
+        else if (Array.isArray(this.content)) {
+            await Promise.allSettled(this.content.map(item=>this._convert(item,contactable)))
         }
         else {
-            this._convert(content);
+            await this._convert(this.content,contactable);
         }
 
         if (!this.elems.length && !this.rich[4]) {
             throw new Error("empty message");
         }
     }
-    async convert(){
-        return Promise.allSettled(this.tasks)
-    }
-    private _convert(elem: MessageElem | string) {
+    private async _convert(elem: MessageElem | string,contactable:Contactable) {
         if (typeof elem === "string") {
             this._text(elem);
         }
         else if (Reflect.has(this, elem.type)) {
-            this.tasks.push(Promise.resolve().then(async() =>await this[elem.type](elem as any)));
+            const method=Reflect.get(this,elem.type)
+            if(typeof method!=='function') return
+            await (method as Function).apply(this,[elem,contactable])
         }
     }
 
@@ -74,7 +76,7 @@ export class Converter {
         this._text(elem.text);
     }
 
-    private at(elem: AtElem) {
+    private at(elem: AtElem,contactable: Contactable) {
         let display;
         let { qq, id, text, dummy } = elem;
 
@@ -85,7 +87,7 @@ export class Converter {
             display = text || String(qq);
 
             if (!text) {
-                const member = this.ext?.mlist?.get(Number(qq));
+                const member = contactable.c.memberList.get(contactable.gid!)?.get(Number(qq));
                 display = member?.card || member?.nickname || display;
             }
         }
@@ -106,12 +108,60 @@ export class Converter {
     }
 
     private face(elem: FaceElem) {
-        let { id, text } = elem;
+        let { id, text,qlottie } = elem;
         id = Number(id);
         if (id < 0 || id > 0xffff || isNaN(id)) {
             throw new Error("wrong face id: " + id)
         }
 
+        if (qlottie) {
+            if (facemap[id]) {
+                text = facemap[id]
+            } else if (!text) {
+                text = "/" + id;
+            }
+            if (!text.startsWith("/"))
+                text = "/" + text;
+
+            this.elems.push([
+                {
+                    53: {
+                        1: 37,
+                        2: {
+                            1: "1",
+                            2: qlottie,
+                            3: id,
+                            4: 1,
+                            5: 1,
+                            6: "",
+                            7: text,
+                            8: "",
+                            9: 1
+                        },
+                        3: 1
+                    }
+                },
+                {
+                    1: {
+                        1: text,
+                        12: {
+                            1: "[" + text.replace("/", "") + "]请使用最新版手机QQ体验新功能"
+                        }
+                    }
+                },
+                {
+                    37: {
+                        17: 21908,
+                        19: {
+                            15: 65536,
+                            31: 0,
+                            41: 0
+                        }
+                    }
+                }
+            ]);
+            return;
+        }
         if (id <= 0xff) {
             const old = Buffer.allocUnsafe(2);
             old.writeUInt16BE(0x1441 + id);
@@ -181,8 +231,14 @@ export class Converter {
         this._text(text);
     }
 
-    private async image(elem: ImageElem) {
-        this.brief += "[图片]";
+    private async image(elem: ImageElem,contactable:Contactable) {
+        const img = new Image(elem, contactable.dm, contactable.c.cacheDir)
+        const proto=await img.getProto()
+        await contactable.uploadImage(img)
+        this.elems.push(
+            contactable.dm ? {4: proto} : {8: proto}
+        )
+        this.brief += "[图片]"
     }
 
     private async reply(elem: ReplyElem) {

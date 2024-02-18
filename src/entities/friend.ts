@@ -5,7 +5,7 @@ import {MessageRet} from "../events";
 import {Client} from "../client";
 import {FriendInfo} from "../entities";
 import {hide, lock} from "../core/constants";
-const friendCache:Map<FriendInfo,Friend>=new Map<FriendInfo,Friend>();
+const friendCache:WeakMap<FriendInfo,Friend>=new WeakMap<FriendInfo,Friend>();
 export class Friend extends User {
 
     protected constructor(c: Client, uin: number) {

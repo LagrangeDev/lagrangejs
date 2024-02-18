@@ -8,8 +8,12 @@ import * as pb from "../core/protobuf"
 import {randomBytes} from "crypto";
 import {Member} from "./member";
 import {GroupInfo} from "../entities";
-const groupCacheMap:Map<GroupInfo,Group>=new Map<GroupInfo,Group>();
+const groupCacheMap:WeakMap<GroupInfo,Group>=new WeakMap<GroupInfo,Group>();
 export class Group extends Contactable {
+    get avatar() {
+        return `https://p.qlogo.cn/gh/${this.gid}/${this.gid}/0/`
+    }
+
     static as(this: Client, gid: number) {
         return new Group(this, Number(gid));
     }

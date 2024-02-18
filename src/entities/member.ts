@@ -6,7 +6,7 @@ import {MemberInfo} from "../entities";
 import {drop} from "../errors";
 import {Quotable, Sendable} from "../message/elements";
 import {MessageRet} from "../events";
-const memberCache:Map<MemberInfo,Member>=new Map<MemberInfo,Member>()
+const memberCache:WeakMap<MemberInfo,Member>=new WeakMap<MemberInfo,Member>()
 export class Member extends User {
 
     protected constructor(c: Client, public readonly gid: number,uin:number) {

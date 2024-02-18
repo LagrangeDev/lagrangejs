@@ -10,6 +10,7 @@ import {bindInternalListeners} from "./internal/listener";
 import {FriendInfo, GroupInfo, MemberInfo} from "./entities";
 import {Friend} from "./entities/friend";
 import {Group} from "./entities/group";
+import {Member} from "./entities/member";
 
 export interface Client extends BaseClient {
     on<T extends keyof EventMap>(event: T, listener: EventMap<this>[T]): this
@@ -42,9 +43,14 @@ export class Client extends BaseClient {
     readonly friendList = new Map<number, FriendInfo>();
     readonly groupList = new Map<number, GroupInfo>();
     readonly memberList = new Map<number, Map<number, MemberInfo>>()
-
+    get cacheDir(){
+        const dir=path.resolve(this.directory,'../image')
+        if(!fs.existsSync(dir)) fs.mkdirSync(dir)
+        return dir
+    }
     pickFriend=Friend.from.bind(this)
     pickGroup=Group.from.bind(this)
+    pickMember=Member.from.bind(this)
 
     constructor(uin: number, conf?: Config) {
         const config = {
