@@ -1,136 +1,129 @@
-/** TEXT (此元素可使用字符串代替) */
-export interface TextElem {
-    type: "text"
-    text: string
+export enum MusicPlatform {
+    qq = "qq",
+    netease = "163",
+}
+export interface MessageElemMap{
+    text: {
+        text: string;
+    };
+    at:{
+        /** 在频道消息中该值为0 */
+        qq: number | "all"
+        /** 频道中的`tiny_id` */
+        id?: string | "all"
+        /** AT后跟的字符串，接收消息时有效 */
+        text?: string
+    }
+    face:{
+        /** face为0~348，sface不明 */
+        id: number
+        qlottie?:string
+        text?:string
+    }
+    sface:{
+        id:number
+        qlottie?:string
+        text?:string
+    }
+    bface:{
+        file:string
+        text?:string
+    }
+    image:{
+        /**
+         * @type {string} filepath such as "/tmp/1.jpg"
+         * @type {Buffer} image buffer
+         * @type {Readable} a readable stream of image
+         */
+        file: string | Buffer | import("stream").Readable
+        /** 网络图片是否使用缓存 */
+        cache?: boolean
+        /** 流的超时时间，默认60(秒) */
+        timeout?: number
+        headers?: import("http").OutgoingHttpHeaders
+        /** 这个参数只有在接收时有用 */
+        url?: string
+        /** 是否作为表情发送 */
+        asface?: boolean
+        /** 是否显示下载原图按钮 */
+        origin?: boolean
+    }
+    record:{
+        /**
+         * support for raw silk and amr file
+         * @type {string} filepath such as "/tmp/1.slk"
+         * @type {Buffer} ptt buffer (silk or amr)
+         */
+        file: string | Buffer
+        url?: string
+        md5?: string
+        size?: number
+        seconds?: number
+    }
+    video:{
+        /**
+         * need ffmpeg and ffprobe
+         * @type {string} filepath such as "/tmp/1.mp4"
+         */
+        file: string
+        name?: string
+        fid?: string
+        md5?: string
+        size?: number
+        seconds?: number
+    }
+    json:{
+        res_id?:string
+        data: string|Record<string, any>;
+    }
+    xml:{
+        data: string
+        id?: number
+    }
+    poke:{
+        /** 0~6 */
+        id: number
+        text?: string
+    }
+    dice:{
+        /** 0~6 */
+        id: number
+    }
+    rps:{
+        id: number;
+    }
+    music:{
+        id: number;
+        platform: MusicPlatform;
+    }
+    mirai:{
+        data:string
+    }
+    file:{
+        name: string
+        fid: string
+        md5: string
+        size: number
+        duration: number
+    }
+    reply:{
+        id:string
+    }
+    forward:{
+        m_resid: string;
+        m_fileName:string
+        message:never
+    } | {
+        m_resid?: never;
+        m_fileName?:never
+        message: Forwardable|Forwardable[];
+    }
 }
 
-/** AT */
-export interface AtElem {
-    type: "at"
-    /** 在频道消息中该值为0 */
-    qq: number | "all"
-    /** 频道中的tiny_id */
-    id?: string | "all"
-    text?: string
-    /** 假at */
-    dummy?: boolean
-}
-
-/** 表情 */
-export interface FaceElem {
-    type: "face" | "sface"
-    /** face为0~324，sface不明 */
-    id: number
-    qlottie?:string
-    text?: string
-}
-
-/** 原创表情 */
-export interface BfaceElem {
-    type: "bface"
-    /** 暂时只能发收到的file */
-    file: string
-    text: string
-}
-
-/** 图片 */
-export interface ImageElem {
-    type: "image"
-    /**
-     * @type {string} filepath such as "/tmp/1.jpg"
-     * @type {Buffer} image buffer
-     * @type {Readable} a readable stream of image
-     */
-    file: string | Buffer | import("stream").Readable
-    /** 网络图片是否使用缓存 */
-    cache?: boolean
-    /** 流的超时时间，默认60(秒) */
-    timeout?: number
-    headers?: import("http").OutgoingHttpHeaders
-    /** 这个参数只有在接收时有用 */
-    url?: string
-    /** 是否作为表情发送 */
-    asface?: boolean
-    /** 是否显示下载原图按钮 */
-    origin?: boolean
-}
-
-/** 语音 */
-export interface PttElem {
-    type: "record"
-    /**
-     * support for raw silk and amr file
-     * @type {string} filepath such as "/tmp/1.slk"
-     * @type {Buffer} ptt buffer (silk or amr)
-     */
-    file: string | Buffer
-    url?: string
-    md5?: string
-    size?: number
-    seconds?: number
-}
-
-/** 视频 */
-export interface VideoElem {
-    type: "video"
-    /**
-     * need ffmpeg and ffprobe
-     * @type {string} filepath such as "/tmp/1.mp4"
-     */
-    file: string
-    name?: string
-    fid?: string
-    md5?: string
-    size?: number
-    seconds?: number
-}
-
-/** JSON */
-export interface JsonElem {
-    type: "json"
-    data: any
-}
-
-/** XML */
-export interface XmlElem {
-    type: "xml"
-    data: string
-    id?: number
-}
-
-/** 戳一戳 */
-export interface PokeElem {
-    type: "poke"
-    /** 0~6 */
-    id: number
-    text?: string
-}
-
-/** 特殊 (官方客户端无法解析此消息) */
-export interface MiraiElem {
-    type: "mirai"
-    data: string
-}
-
-/** 文件 (暂时只支持接收，发送请使用文件专用API) */
-export interface FileElem {
-    type: "file"
-    name: string
-    fid: string
-    md5: string
-    size: number
-    duration: number
-}
-
-/** @deprecated @cqhttp 旧版引用回复(已弃用)，仅做一定程度的兼容 */
-export interface ReplyElem {
-    type: "reply"
-    id: string
-}
 
 /** 可引用回复的消息 */
 export interface Quotable {
-    uin: number
+    user_id: number
     time: number
     seq: number
     /** 私聊回复必须 */
@@ -141,17 +134,60 @@ export interface Quotable {
 
 /** 可转发的消息 */
 export interface Forwardable {
-    uin: number,
+    user_id: number
+    group_id?:number
     message: Sendable,
     nickname?: string,
     time?: number,
 }
+type MessageElemType = keyof MessageElemMap;
+// 消息元素
+export type MessageElem<T extends MessageElemType = MessageElemType> = {
+    type: T;
+} & MessageElemMap[T];
+// 可以发送的消息类型
+export type TextElem = MessageElem<"text">;
+export type AtElem = MessageElem<"at">;
+export type FaceElem = MessageElem<"face"|'sface'>;
+export type BFaceElem = MessageElem<'bface'>
+export type ImageElem = MessageElem<"image">;
+export type VideoElem = MessageElem<"video">;
+export type RecordElem = MessageElem<"record">;
+export type FileElem = MessageElem<"file">;
+export type XmlElem = MessageElem<"xml">;
+export type JsonElem = MessageElem<"json">;
+// export type AppElem = MessageElem<"app">;
+export type PokeElem = MessageElem<"poke">;
+export type DiceElem = MessageElem<"dice">;
+export type RpsElem = MessageElem<"rps">;
+export type MusicElem = MessageElem<"music">;
+export type ReplyElem = MessageElem<"reply">;
+export type ForwardElem = MessageElem<"forward">;
 
-/** 可组合发送的元素 */
-export type ChainElem = TextElem | FaceElem | BfaceElem | ImageElem | AtElem | ReplyElem;
-
-/** 注意：只有`ChainElem`中的元素可以组合发送，其他元素只能单独发送 */
-export type MessageElem = TextElem | FaceElem | BfaceElem | ImageElem | AtElem | ReplyElem | PttElem | VideoElem | JsonElem | XmlElem | FileElem;
-
-/** 可通过sendMsg发送的类型集合 (字符串、元素对象，或它们的数组) */
-export type Sendable = string | MessageElem | (string | MessageElem)[];
+// 重复组合的消息元素
+type RepeatableCombineElem = TextElem | FaceElem | ImageElem | AtElem;
+// 带回复的消息元素
+type WithReply<T extends MessageElem> =
+    | T
+    | [T]
+    | [ReplyElem, T]
+    | [ReplyElem, ...RepeatableCombineElem[]];
+// 可发送的消息元素
+export type Sendable =
+    | string // 文本
+    | RepeatableCombineElem
+    | RepeatableCombineElem[] // 可重复组合的消息元素
+    | WithReply<
+    | BFaceElem // 原创表情消息元素
+    | ForwardElem // 转发消息元素
+    | PokeElem // 戳一戳消息元素
+    | DiceElem // 掷骰子消息元素
+    | VideoElem // 视频消息元素
+    | RecordElem // 语音消息元素
+    | FileElem // 文件消息元素
+    | XmlElem // Xml消息元素
+    | MusicElem // 音乐消息元素
+    // | AppElem // 应用消息元素
+    | JsonElem // Json消息元素
+    | RpsElem // 猜拳消息元素
+>; // 带回复的消息元素

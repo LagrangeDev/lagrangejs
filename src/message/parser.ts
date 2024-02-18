@@ -3,6 +3,7 @@ import { pb } from "../core"
 import * as T from "./elements"
 import {facemap} from "./face";
 import {buildImageFileParam} from "./image";
+import {AtElem, TextElem} from "./elements";
 
 /** 解析消息 */
 export function parse(rich: pb.Proto | pb.Proto[], uin?: number) {
@@ -14,7 +15,7 @@ export class Parser {
 
     message: T.MessageElem[] = [];
     brief = "";
-    content = "";
+    content:string|Record<string, any> = "";
     /** 匿名情报 */
     anon?: pb.Proto;
     /** 额外情报 */
@@ -210,7 +211,7 @@ export class Parser {
 
         // 删除回复中多余的AT元素
         if (this.message.length === 2 && elem.type === "at" && this.message[0]?.type === "at" && this.message[1]?.type === "text") {
-            if (this.message[0].qq === elem.qq && this.message[1].text === " ") {
+            if ((this.message[0] as AtElem).qq === (elem as AtElem).qq && (this.message[1] as TextElem).text === " ") {
                 this.message.splice(0, 2);
                 this.brief = "";
             }
@@ -222,7 +223,7 @@ export class Parser {
 
         const prev = this.message[this.message.length - 1];
         if (elem.type === "text" && prev?.type === "text") {
-            prev.text += elem.text;
+            (prev as TextElem).text += (elem as TextElem).text;
         }
         else {
             this.message.push(elem);

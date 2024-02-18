@@ -34,7 +34,9 @@ export const sha1 = (data: BinaryLike) => createHash("sha1").update(data).digest
 
 /** sha256 hash */
 export const sha256 = (data: BinaryLike) => createHash("sha256").update(data).digest();
-
+export const randomInt=(min:number=0,max:number=1)=>{
+    return Math.floor(Math.random()*(max-min+1)+min)
+}
 export const aesGcmEncrypt = (data: BinaryLike, key: BinaryLike) => {
     const iv = randomBytes(12);
 

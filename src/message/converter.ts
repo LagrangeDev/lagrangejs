@@ -1,10 +1,13 @@
 import * as pb from "../core/protobuf";
 import {Image} from "./image";
-import {AtElem, BfaceElem, FaceElem, FileElem, ImageElem, JsonElem, MessageElem,
-    PttElem, ReplyElem, Sendable, TextElem, VideoElem, XmlElem} from "./elements";
+import {
+    AtElem, BFaceElem, FaceElem, FileElem, ForwardElem, ImageElem, JsonElem, MessageElem,
+    RecordElem, ReplyElem, Sendable, TextElem, VideoElem, XmlElem
+} from "./elements";
 import {FACE_OLD_BUF, facemap} from "./face";
 import {deflateSync} from "zlib";
 import {Contactable} from "../entities/contactable";
+import {escapeXml, uuid} from "../common";
 
 const BUF1 = Buffer.from([1]);
 
@@ -47,6 +50,7 @@ export class Converter {
         if (!this.elems.length && !this.rich[4]) {
             throw new Error("empty message");
         }
+        return this
     }
     private async _convert(elem: MessageElem | string,contactable:Contactable) {
         if (typeof elem === "string") {
@@ -78,7 +82,7 @@ export class Converter {
 
     private at(elem: AtElem,contactable: Contactable) {
         let display;
-        let { qq, id, text, dummy } = elem;
+        let { qq, id, text } = elem;
 
         if (qq === "all") {
             display = "全体成员";
@@ -92,7 +96,6 @@ export class Converter {
             }
         }
         display = "@" + display;
-        if (dummy) return this._text(display);
 
         const reserve = pb.encode({ // 不走有的没的的buffer了
             3: qq === "all" ? 1 : 2,
@@ -196,6 +199,38 @@ export class Converter {
         this.brief += "[表情]";
     }
 
+    private async forward(elem: ForwardElem,contactable:Contactable) {
+        if(elem.m_resid) {
+            const forwardList=await contactable.getForwardMsg(elem.m_resid,elem.m_fileName)
+            if(!forwardList) return
+            return this.json({
+                type:'json',
+                data:{
+                    "app": "com.tencent.multimsg",
+                    "config": { "autosize": 1, "forward": 1, "round": 1, "type": "normal", "width": 300 },
+                    "desc": "[聊天记录]",
+                    "extra": "",
+                    "meta": {
+                        "detail": {
+                            "news": forwardList.slice(0,4).map(item=>{
+                                return {
+                                    text:`${escapeXml(item.nickname)}: ${escapeXml(item.raw_message.slice(0, 50))}`
+                                }
+                            }),
+                            "resid": elem.m_resid,
+                            "source": "群聊的聊天记录",
+                            "summary": `查看${forwardList.length}条转发消息`,
+                            "uniseq": uuid().toUpperCase()
+                        }
+                    },
+                    "prompt": "[聊天记录]",
+                    "ver": "0.0.0.5",
+                    "view": "contact"
+                }
+            })
+        }
+        return this.json(await contactable.makeForwardMsg(elem.message))
+    }
     private sface(elem: FaceElem) {
         let { id, text } = elem;
         if (!text) text = String(id);
@@ -210,7 +245,7 @@ export class Converter {
         this._text(text);
     }
 
-    private bface(elem: BfaceElem, magic?: Buffer) {
+    private bface(elem: BFaceElem) {
         let { file, text } = elem;
         if (!text) text = "原创表情";
         text = "[" + String(text).slice(0, 5) + "]";
@@ -225,7 +260,6 @@ export class Converter {
             9: 0,
             10: 200,
             11: 200,
-            12: magic || null
         }
         this.elems.push({ 6: o });
         this._text(text);
@@ -244,7 +278,7 @@ export class Converter {
     private async reply(elem: ReplyElem) {
     }
 
-    private async record(elem: PttElem) {
+    private async record(elem: RecordElem) {
         this.brief += "[语音]";
         this.is_chain = false;
     }
@@ -255,8 +289,16 @@ export class Converter {
     }
     private json(elem: JsonElem) {
         this.elems.push({
-            51: {
-                1: Buffer.concat([BUF1, deflateSync(typeof elem.data === "string" ? elem.data : JSON.stringify(elem.data))])
+            1:{
+                1: elem.res_id||''
+            },
+        },{
+            12:{
+                1:Buffer.concat([
+                    BUF1,
+                    deflateSync(typeof elem.data==="string"?elem.data:JSON.stringify(elem.data))
+                ]),
+                2:1
             }
         });
         this.brief += "[json消息]";
