@@ -27,32 +27,8 @@ async function kickListener(this: Client, payload: Buffer) {
 }
 
 async function syncPushListener(this: Client, payload: Buffer) {
-    const proto = pb.decode(payload);
-    if (proto[3] == 5) {
-        for (let group of proto[6]) {
-            const gid = group[1];
 
-            const info = {
-                "group_id": gid,
-                "group_name": group[9].toString(),
-                "member_count": 0,
-                "max_member_count": 0,
-                "owner_id": 0,
-                "admin_flag": false,
-                "last_join_time": 0,
-                "last_sent_time": 0,
-                "shutup_time_whole": 0,
-                "shutup_time_me": 0,
-                "create_time": 0,
-                "grade": 0,
-                "max_admin_count": 0,
-                "active_member_count": 0,
-                "update_time": 0
-            };
-            this.groupList.set(gid, Object.assign(this.groupList.get(gid) || {}, info));
-            if (this.groupListCallback) this.groupListCallback();
-        }
-    }
+    this.emit('internal.infoPush',pb.decode(payload))
 }
 
 const events = {

@@ -2,14 +2,22 @@ import { User } from "./user";
 import {Client} from "../client";
 import {lock} from "../core/constants";
 import * as pb from "../core/protobuf"
-
+import {MemberInfo} from "../entities";
+const memberCache:Map<MemberInfo,Member>=new Map<MemberInfo,Member>()
 export class Member extends User {
 
-    protected constructor(c: Client, public readonly gid: number) {
-        super(c);
+    protected constructor(c: Client, public readonly gid: number,uid:number) {
+        super(c,uid);
         lock(this, "gid");
     }
-
+    static from(this:Client,gid: number,uid:number):Member {
+        const memberInfo=this.memberList.get(gid)?.get(uid)
+        if(!memberInfo) throw new Error('Group not exist or Member not found')
+        let member=memberCache.get(memberInfo)
+        if(member) return member
+        memberCache.set(memberInfo,member=new Member(this,gid,uid))
+        return member
+    }
     async mute(duration: number) {
         const body = pb.encode({
             1: this.gid,

@@ -54,7 +54,7 @@ export async function getSign(this: BaseClient, cmd: string, seq: number, src: B
         seq: seq,
         src: src.toString("hex")
     };
-    const url = new URL("http://127.0.0.1:7458/api/sign").toString();
+    const url = new URL(this.sig.signApiAddr).toString();
     const config = {
         params: params
     };

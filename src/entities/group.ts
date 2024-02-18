@@ -1,18 +1,27 @@
 import {Contactable} from "./contactable";
 import {Client} from "../client";
 import {lock} from "../core/constants";
-import {Sendable} from "../message/elements";
+import {Quotable, Sendable} from "../message/elements";
 import {MessageRet} from "../events";
 import {drop} from "../errors";
 import * as pb from "../core/protobuf"
 import {randomBytes} from "crypto";
 import {Member} from "./member";
-
-export class Discuss extends Contactable {
+import {GroupInfo} from "../entities";
+const groupCacheMap:Map<GroupInfo,Group>=new Map<GroupInfo,Group>();
+export class Group extends Contactable {
     static as(this: Client, gid: number) {
-        return new Discuss(this, Number(gid));
+        return new Group(this, Number(gid));
     }
-
+    static from(this: Client,gid: number){
+        const groupInfo=this.groupList.get(gid)
+        if(!groupInfo) throw new Error("Group not found")
+        let group=groupCacheMap.get(groupInfo)
+        if(group) return group
+        groupCacheMap.set(groupInfo,group=new Group(this,gid))
+        return group
+    }
+    pickMember=Member.from.bind(this.c,this.gid)
     get group_id() {
         return this.gid;
     }
@@ -22,8 +31,8 @@ export class Discuss extends Contactable {
         lock(this, "gid");
     }
 
-    async sendMsg(content: Sendable): Promise<MessageRet> {
-        const { rich, brief } = await this._preprocess(content);
+    async sendMsg(content: Sendable,quote?:Quotable): Promise<MessageRet> {
+        const { rich, brief } = await this._preprocess(content,quote);
         const body = pb.encode({
             1: { 2: { 1: this.gid } },
             2: {
@@ -38,16 +47,18 @@ export class Discuss extends Contactable {
         const payload = await this.c.sendUni("MessageSvc.PbSendMsg", body);
         const rsp = pb.decode(payload);
         if (rsp[1] !== 0) {
-            this.c.logger.error(`failed to send: [Discuss(${this.gid})] ${rsp[2]}(${rsp[1]})`);
+            this.c.logger.error(`failed to send: [Group(${this.gid})] ${rsp[2]}(${rsp[1]})`);
             drop(rsp[1], rsp[2]);
         }
-        this.c.logger.info(`succeed to send: [Discuss(${this.gid})] ` + brief);
+        this.c.logger.info(`succeed to send: [Group(${this.gid})] ` + brief);
         return {
             seq: 0,
             time: 0,
         };
     }
-
+    recallMsg(seq:number){
+        throw new Error('not implemented');
+    }
     async renameGroup(targetName: string) {
         const body = pb.encode({
             1: this.group_id,

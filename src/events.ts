@@ -1,6 +1,8 @@
 import {LoginErrorCode} from "./errors";
 import {GroupMessage, PrivateMessage} from "./message/message";
 import {Sendable} from "./message/elements";
+import {pb} from './core'
+import {Client} from "./client";
 
 export interface MessageRet {
     seq: number
@@ -16,14 +18,42 @@ export interface MessageEvent {
     reply(content: Sendable, quote?: boolean): Promise<MessageRet>;
 }
 
-export interface PrivateMessageEvent extends PrivateMessage, MessageEvent {
+
+export class PrivateMessageEvent extends PrivateMessage implements MessageEvent{
+
+    #c:Client
+    constructor(c: Client,pb:pb.Proto) {
+        super(pb);
+        this.#c = c
+    }
     /** 好友对象 */
+    get friend() {
+        return this.#c.pickFriend(this.uin)
+    }
+    reply(content: Sendable, quote?: boolean): Promise<MessageRet> {
+        return this.friend.sendMsg(content,quote?this:undefined)
+    }
 }
-
-export interface GroupMessageEvent extends GroupMessage, MessageEvent {
-
+export class GroupMessageEvent extends GroupMessage implements MessageEvent{
+    #c:Client
+    constructor(c: Client,pb:pb.Proto) {
+        super(pb);
+        this.#c = c
+    }
+    /** 群对象 */
+    get group(){
+        return this.#c.pickGroup(this.group_id)
+    }
+    get member(){
+        return this.group.pickMember(this.uin)
+    }
+    recall(){
+        return this.group.recallMsg(this.seq)
+    }
+    reply(content: Sendable, quote?: boolean): Promise<MessageRet> {
+        return this.group.sendMsg(content,quote?this:undefined)
+    }
 }
-
 export interface EventMap<T = any> {
     /** 收到二维码 */
     "system.login.qrcode": (this: T, event: { image: Buffer }) => void

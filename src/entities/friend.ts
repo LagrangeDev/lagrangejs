@@ -6,14 +6,21 @@ import {MessageRet} from "../events";
 import {Client} from "../client";
 import {FriendInfo} from "../entities";
 import {hide} from "../core/constants";
-
+const friendCache:Map<FriendInfo,Friend>=new Map<FriendInfo,Friend>();
 export class Friend extends User {
 
-    protected constructor(c: Client, uid: number, private _info?: FriendInfo) {
-        super(c);
+    protected constructor(c: Client, uid: number) {
+        super(c,uid);
         hide(this, "_info");
     }
-
+    static from(this:Client, uid: number){
+        const friendInfo=this.friendList.get(uid)
+        if(!friendInfo) throw new Error('Friend not found')
+        let friend=friendCache.get(friendInfo)
+        if(friend) return friend
+        friendCache.set(friendInfo, friend =new Friend(this, uid))
+        return friend
+    }
     async sendMsg(content: Sendable, source?: Quotable): Promise<MessageRet> {
         const { rich, brief } = await this._preprocess(content, source);
         return this._sendMsg({ 1: rich }, brief);

@@ -110,7 +110,7 @@ export class BaseClient extends EventEmitter {
         d2: BUF0,
         d2Key: BUF16,
         qrSig: BUF0,
-
+        signApiAddr:'http://127.0.0.1:7458/api/sign',
         exchangeKey: BUF0,
         keySig: BUF0,
         cookies: "",

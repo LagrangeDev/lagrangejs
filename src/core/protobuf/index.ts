@@ -25,6 +25,32 @@ export class Proto implements Encodable {
     toBuffer() {
         return this.encoded
     }
+    toJSON(){
+        const toJSON=(pb:any)=>{
+            if(!(pb instanceof Proto)) return pb
+            const keys=Object.keys(pb)
+            if(keys.length===1 && keys[0]==='encoded'){
+                try{
+                    pb=decode(pb.encoded)
+                }catch {
+                    return pb.encoded.toString()
+                }
+            }
+            if(!pb) return pb
+            const result:Record<string, any>={}
+            for(const k of Object.keys(pb)){
+                if(!/^\d+$/.test(k)) continue
+                const key=Number(k)
+                if(Array.isArray(pb[key])) return pb[key].map(toJSON)
+                else if(pb[key] instanceof Proto) result[key]=pb[key].toJSON()
+                else if(pb[key] && typeof pb[key] === "object") result[key]=toJSON(pb[key])
+                else if(Buffer.isBuffer(pb[key])) result[key]=pb[key].toString("hex")
+                else result[key]=pb[key]
+            }
+            return result
+        }
+        return toJSON(this)
+    }
     [Symbol.toPrimitive]() {
         return this.toString()
     }

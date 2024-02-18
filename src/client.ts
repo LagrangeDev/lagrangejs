@@ -8,6 +8,8 @@ import {EventMap} from "./events";
 import {md5, NOOP} from "./core/constants";
 import {bindInternalListeners} from "./internal/listener";
 import {FriendInfo, GroupInfo, MemberInfo} from "./entities";
+import {Friend} from "./entities/friend";
+import {Group} from "./entities/group";
 
 export interface Client extends BaseClient {
     on<T extends keyof EventMap>(event: T, listener: EventMap<this>[T]): this
@@ -41,8 +43,8 @@ export class Client extends BaseClient {
     readonly groupList = new Map<number, GroupInfo>();
     readonly memberList = new Map<number, Map<number, MemberInfo>>()
 
-
-    groupListCallback?: Function;
+    pickFriend=Friend.from.bind(this)
+    pickGroup=Group.from.bind(this)
 
     constructor(uin: number, conf?: Config) {
         const config = {
@@ -51,7 +53,7 @@ export class Client extends BaseClient {
             autoServer: true,
             ignoreSelf: true,
             reConnInterval: 5,
-            dataDirectory: path.join(require?.main?.path || process.cwd(), "data"),
+            dataDirectory: path.join(process.cwd(), "data"),
             ...conf,
         };
 
@@ -76,7 +78,7 @@ export class Client extends BaseClient {
             token = null;
         }
         super(uin, token?.Uid ?? "", config.platform);
-
+        this.sig.signApiAddr=config.signApiAddr||this.sig.signApiAddr
         this.logger = log4js.getLogger(`[${this.deviceInfo.deviceName}:${uin}]`);
         (this.logger as log4js.Logger).level = config.logLevel;
         if (regenerate) this.logger.mark("创建了新的设备文件：" + deviceFile);
@@ -179,6 +181,8 @@ export interface Config {
     reConnInterval?: number
     /** 自动选择最优服务器(默认true)，关闭后会一直使用`msfwifi.3g.qq.com:8080`进行连接 */
     autoServer?: boolean
+    /** 签名API地址 */
+    signApiAddr?:string
 }
 
 export interface SavedToken {
