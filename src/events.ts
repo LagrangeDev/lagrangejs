@@ -28,7 +28,7 @@ export class PrivateMessageEvent extends PrivateMessage implements MessageEvent{
     }
     /** 好友对象 */
     get friend() {
-        return this.#c.pickFriend(this.uin)
+        return this.#c.pickFriend(this.user_id)
     }
     reply(content: Sendable, quote?: boolean): Promise<MessageRet> {
         return this.friend.sendMsg(content,quote?this:undefined)
@@ -45,7 +45,7 @@ export class GroupMessageEvent extends GroupMessage implements MessageEvent{
         return this.#c.pickGroup(this.group_id)
     }
     get member(){
-        return this.group.pickMember(this.uin)
+        return this.group.pickMember(this.user_id)
     }
     recall(){
         return this.group.recallMsg(this.seq)
