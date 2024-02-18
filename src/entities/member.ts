@@ -15,6 +15,9 @@ export class Member extends User {
         lock(this, "uid");
         lock(this, "gid");
     }
+    get isFriend(){
+        return !!this.c.friendList.get(this.uin)
+    }
     static from(this:Client,gid: number,uid:number):Member {
         const memberInfo=this.memberList.get(gid)?.get(uid)
         if(!memberInfo) throw new Error('Group not exist or Member not found')
@@ -60,15 +63,15 @@ export class Member extends User {
         return !rsp[3];
     }
     async sendMsg(content: Sendable, source?: Quotable): Promise<MessageRet>{
-
+        if(this.isFriend) return this.asFriend().sendMsg(content,source) // 是好友，直接走私聊
         const { rich, brief } = await this._preprocess(content,source);
         const seq = this.c.sig.seq + 1;
         const rsp = await this._sendMsg({ 1: rich })
         if (rsp[1] !== 0) {
-            this.c.logger.error(`failed to send: [Group(${this.gid})] ${rsp[2]}(${rsp[1]})`);
+            this.c.logger.error(`failed to send: [Temp(${this.uin}) of Group(${this.gid})] ${rsp[2]}(${rsp[1]})`);
             drop(rsp[1], rsp[2]);
         }
-        this.c.logger.info(`succeed to send: [Group(${this.gid})] ` + brief);
+        this.c.logger.info(`succeed to send: [Temp(${this.uin}) of Group(${this.gid})] ` + brief);
         const time = rsp[3];
         return { seq, time }
     }

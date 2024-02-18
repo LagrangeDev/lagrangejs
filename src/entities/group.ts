@@ -40,10 +40,10 @@ export class Group extends Contactable {
         const seq = this.c.sig.seq + 1;
         const rsp = await this._sendMsg({ 1: rich })
         if (rsp[1] !== 0) {
-            this.c.logger.error(`failed to send: [Temp(${this.uin})Of Group(${this.gid})] ${rsp[2]}(${rsp[1]})`);
+            this.c.logger.error(`failed to send: [Group(${this.gid})] ${rsp[2]}(${rsp[1]})`);
             drop(rsp[1], rsp[2]);
         }
-        this.c.logger.info(`succeed to send: [Temp(${this.uin})Of Group(${this.gid})] ` + brief);
+        this.c.logger.info(`succeed to send: [Group(${this.gid})] ` + brief);
         const time = rsp[3];
         return { seq, time }
     }
