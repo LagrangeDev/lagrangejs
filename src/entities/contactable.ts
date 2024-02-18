@@ -36,6 +36,8 @@ export abstract class Contactable {
 
             const converter = new Converter(content);
             await converter.convert(this)
+            if (source)
+                await converter.quote(source,this)
             return converter;
         }
         catch (e: any) {

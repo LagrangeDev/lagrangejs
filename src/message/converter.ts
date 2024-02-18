@@ -1,13 +1,14 @@
 import * as pb from "../core/protobuf";
 import {Image} from "./image";
 import {
-    AtElem, BFaceElem, FaceElem, FileElem, ForwardElem, ImageElem, JsonElem, MessageElem,
+    AtElem, BFaceElem, FaceElem, FileElem, ForwardElem, ImageElem, JsonElem, MessageElem, Quotable,
     RecordElem, ReplyElem, Sendable, TextElem, VideoElem, XmlElem
 } from "./elements";
 import {FACE_OLD_BUF, facemap} from "./face";
 import {deflateSync} from "zlib";
 import {Contactable} from "../entities/contactable";
 import {escapeXml, uuid} from "../common";
+import {rand2uuid} from "./message";
 
 const BUF1 = Buffer.from([1]);
 
@@ -79,7 +80,30 @@ export class Converter {
     private text(elem: TextElem) {
         this._text(elem.text);
     }
-
+    /** 引用回复 */
+    async quote(source: Quotable,contactable:Contactable) {
+        const converter=await new Converter(source.message || "").convert(contactable)
+        const elems = converter.elems
+        const tmp = this.brief
+        if (!contactable.dm) {
+            this.at({ type: "at", qq: source.user_id },contactable)
+            this.elems.unshift(this.elems.pop()!)
+        }
+        this.elems.unshift({
+            45: {
+                1: [source.seq],
+                2: source.user_id,
+                3: source.time,
+                4: 1,
+                5: elems,
+                6: 0,
+                8: {
+                    3: rand2uuid(source.rand || 0)
+                }
+            }
+        })
+        this.brief = `[回复${this.brief.replace(tmp, "")}]` + tmp
+    }
     private at(elem: AtElem,contactable: Contactable) {
         let display;
         let { qq, id, text } = elem;
