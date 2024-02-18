@@ -27,7 +27,7 @@ export class Converter {
     length = 0
     /** 预览文字 */
     brief = ""
-
+    tasks:Promise<void>[]=[]
     public constructor(content: Sendable, private ext?: ConverterExt) {
         if (typeof content === "string") {
             this._text(content);
@@ -45,13 +45,15 @@ export class Converter {
             throw new Error("empty message");
         }
     }
-
+    async convert(){
+        return Promise.allSettled(this.tasks)
+    }
     private _convert(elem: MessageElem | string) {
         if (typeof elem === "string") {
             this._text(elem);
         }
         else if (Reflect.has(this, elem.type)) {
-            this[elem.type](elem as any);
+            this.tasks.push(Promise.resolve().then(async() =>await this[elem.type](elem as any)));
         }
     }
 
@@ -179,19 +181,19 @@ export class Converter {
         this._text(text);
     }
 
-    private image(elem: ImageElem) {
+    private async image(elem: ImageElem) {
         this.brief += "[图片]";
     }
 
-    private reply(elem: ReplyElem) {
+    private async reply(elem: ReplyElem) {
     }
 
-    private record(elem: PttElem) {
+    private async record(elem: PttElem) {
         this.brief += "[语音]";
         this.is_chain = false;
     }
 
-    private video(elem: VideoElem) {
+    private async video(elem: VideoElem) {
         this.brief += "[视频]";
         this.is_chain = false;
     }

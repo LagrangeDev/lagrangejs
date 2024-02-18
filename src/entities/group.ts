@@ -31,33 +31,27 @@ export class Group extends Contactable {
         lock(this, "gid");
     }
 
-    async sendMsg(content: Sendable,quote?:Quotable): Promise<MessageRet> {
-        const { rich, brief } = await this._preprocess(content,quote);
-        const body = pb.encode({
-            1: { 2: { 1: this.gid } },
-            2: {
-                1: 1,
-                2: 0,
-                3: 0
-            },
-            3: { 1: rich },
-            4: randomBytes(2).readUInt16BE(),
-            5: randomBytes(4).readUInt32BE(),
-        });
-        const payload = await this.c.sendUni("MessageSvc.PbSendMsg", body);
-        const rsp = pb.decode(payload);
+    async sendMsg(content: Sendable,source?:Quotable): Promise<MessageRet> {
+        const { rich, brief } = await this._preprocess(content,source);
+        const seq = this.c.sig.seq + 1;
+        const rsp = await this._sendMsg({ 1: rich })
         if (rsp[1] !== 0) {
-            this.c.logger.error(`failed to send: [Group(${this.gid})] ${rsp[2]}(${rsp[1]})`);
+            this.c.logger.error(`failed to send: [Temp(${this.uin})Of Group(${this.gid})] ${rsp[2]}(${rsp[1]})`);
             drop(rsp[1], rsp[2]);
         }
-        this.c.logger.info(`succeed to send: [Group(${this.gid})] ` + brief);
-        return {
-            seq: 0,
-            time: 0,
-        };
+        this.c.logger.info(`succeed to send: [Temp(${this.uin})Of Group(${this.gid})] ` + brief);
+        const time = rsp[3];
+        return { seq, time }
     }
-    recallMsg(seq:number){
-        throw new Error('not implemented');
+    async recallMsg(seq:number){
+        const result = await this.c.sendUni("trpc.msg.msg_svc.MsgService.SsoGroupRecallMsg", pb.encode({
+            1: 1,
+            2: this.gid,
+            3: {1: seq, 3: 0},
+            4: {1: 0}
+        }))
+        const proto=pb.decode(result)
+        return !!proto[3]
     }
     async renameGroup(targetName: string) {
         const body = pb.encode({

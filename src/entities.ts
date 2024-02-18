@@ -29,6 +29,7 @@ export interface GroupInfo {
 }
 
 export interface MemberInfo {
+    uid:string
     group_id: number;
     user_id: number;
 }

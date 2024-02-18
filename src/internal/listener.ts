@@ -4,7 +4,7 @@ import * as pb from "../core/protobuf";
 import { PNG } from "pngjs";
 import {Client} from "../client";
 import {handleGroupMsg, handlePrivateMsg} from "./msgpush";
-import {loadFriendList, loadGroupList} from "./internal";
+import {loadFriendList, loadGroupList, loadGroupMemberList} from "./internal";
 
 async function msgPushListener(this: Client, payload: Buffer) {
     const proto = pb.decode(payload);
@@ -73,9 +73,10 @@ function logQrcode(img: Buffer) {
 async function onlineListener(this: Client, token: Buffer, nickname: string, gender: number, age: number) {
     this.logger.mark(`Welcome, ${nickname} ! 正在加载资源...`);
     await Promise.allSettled([
-        loadFriendList.call(this),
-        loadGroupList.call(this)
+        loadFriendList.call(this),// 好友列表
+        loadGroupList.call(this),// 群列表
     ]);
+    await Promise.allSettled([...this.groupList.keys()].map(loadGroupMemberList)) // 群成员
     this.logger.mark(`加载了${this.friendList.size}个好友，${this.groupList.size}个群`);
     this.emit("system.online");
 }

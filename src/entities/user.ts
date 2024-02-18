@@ -1,10 +1,10 @@
 import {Contactable} from "./contactable";
 import {Client} from "../client";
-import * as pb from "../core/protobuf/index";
+import {lock} from "../core/constants";
 
 export class User extends Contactable {
-    protected constructor(c: Client,uid:number) {
+    protected constructor(c: Client,public readonly uin:number) {
         super(c);
-        this.uin=uid
+        lock(this,'uin')
     }
 }
