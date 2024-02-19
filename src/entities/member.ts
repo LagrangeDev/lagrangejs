@@ -20,7 +20,7 @@ export class Member extends User {
     }
     static from(this:Client,gid: number,uid:number):Member {
         const memberInfo=this.memberList.get(gid)?.get(uid)
-        if(!memberInfo) throw new Error('Group not exist or Member not found')
+        if(!memberInfo) throw new Error(`Group(${gid}) not exist or Member(${uid}) not found`)
         let member=memberCache.get(memberInfo)
         if(member) return member
         memberCache.set(memberInfo,member=new Member(this,gid,uid))
@@ -40,7 +40,7 @@ export class Member extends User {
         return !rsp[3];
     }
 
-    async kickGroupMember(rejectAddition: boolean) {
+    async kick(rejectAddition: boolean) {
         const body = pb.encode({
             1: this.gid,
             3: this.uid,
@@ -52,7 +52,7 @@ export class Member extends User {
         return !rsp[3];
     }
 
-    async setGroupAdmin(isAdmin?: boolean) {
+    async setAdmin(isAdmin?: boolean) {
         const body = pb.encode({
             1: this.gid,
             2: this.uid,
@@ -61,6 +61,20 @@ export class Member extends User {
         const packet = await this.c.sendOidbSvcTrpcTcp(0x8a0, 1, body);
         const rsp = pb.decode(packet);
         return !rsp[3];
+    }
+
+    /**
+     * 设为群主
+     */
+    async setOwner(){
+        const body = pb.encode({
+            1: this.gid,
+            2: this.c.uid,
+            3: this.uid
+        });
+        const packet = await this.c.sendOidbSvcTrpcTcp(0x89e, 0, body);
+        const rsp = pb.decode(packet);
+        return!rsp[3];
     }
     async sendMsg(content: Sendable, source?: Quotable): Promise<MessageRet>{
         if(this.isFriend) return this.asFriend().sendMsg(content,source) // 是好友，直接走私聊
@@ -83,7 +97,7 @@ export class Member extends User {
                 8: targetName
             }
         });
-        const packet = await this.c.sendOidbSvcTrpcTcp(0x8a0, 1, body);
+        const packet = await this.c.sendOidbSvcTrpcTcp(0x8fc, 3, body);
         const rsp = pb.decode(packet);
         return !rsp[3];
     }

@@ -8,6 +8,7 @@ import {randomBytes} from "crypto";
 import {EXT, Image} from "../message/image";
 import {escapeXml, uuid} from "../common";
 import {ForwardMessage} from "../message/message";
+import {LogLevel} from "../core";
 
 export abstract class Contactable {
     public uin?: number
@@ -55,15 +56,16 @@ export abstract class Contactable {
             return [
                 pb.encode({
                     1: { // res head
-                        3: forwardItem.group_id?this.c.memberList.get(forwardItem.group_id!)?.get(forwardItem.user_id)?.uid:
-                            this.c.pickFriend(forwardItem.user_id)?.uid,
-                        7: {
-                            6: forwardItem.nickname||'' // 发送用户昵称
+                        2:this.c.uid,
+                        6:forwardItem.group_id?this.c.memberList.get(forwardItem.group_id!)?.get(forwardItem.user_id)?.uid:
+                            this.c.friendList.get(forwardItem.user_id)?.uid,
+                        7:{
+                            6:forwardItem.nickname
                         },
-                        8: forwardItem.group_id ? { // 发送群信息
-                            1: forwardItem.group_id,
-                            4: this.c.memberList.get(forwardItem.group_id!)?.get(forwardItem.user_id)?.card
-                        } : null
+                        8:forwardItem.group_id?{
+                            1:forwardItem.group_id,
+                            4:this.c.memberList.get(forwardItem.group_id!)?.get(forwardItem.user_id)?.card||''
+                        }:null
                     },
                     2: { // res content
                         1: forwardItem.group_id ? 82 : 529, // type
@@ -88,7 +90,10 @@ export abstract class Contactable {
             ]
         }
         const forwardList=Array.isArray(msglist)?msglist:[msglist]
-        const nodes = await Promise.all(forwardList.map(_makeFake))
+        const nodes = await Promise.all(forwardList.map(_makeFake)).catch(e=>{
+            this.c.emit('internal.verbose', e, LogLevel.Error)
+            throw e
+        })
         const preview=nodes.slice(0,4).map(([_,nickname='',brief])=>{
             return {
                 text:`${escapeXml(nickname)}: ${escapeXml(brief.slice(0, 50))}`

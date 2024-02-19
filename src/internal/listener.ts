@@ -17,6 +17,23 @@ async function msgPushListener(this: Client, payload: Buffer) {
         case 166: // friend msg
             handlePrivateMsg.call(this, proto[1]);
             break;
+        case 84: // group request join notice
+        case 525: // group request invite notice
+            if(!proto[1][3][1]) break
+        case 87: // group invite notice
+        case 44: // group admin change
+        case 33: // group member increase
+        case 34: // group member decrease
+        case 0x210: // friend request notice
+            if(proto[1][2][2]!==226) break;
+        case 0x2dc:
+            if(proto[1][2][2]===17) { // group recall
+
+            }
+            else if(proto[1][2][2]===12) { // group mute
+
+            }
+
     }
 }
 
@@ -76,9 +93,11 @@ async function onlineListener(this: Client, token: Buffer, nickname: string, gen
         loadFriendList.call(this),// 好友列表
         loadGroupList.call(this),// 群列表
     ]);
-    await Promise.allSettled([...this.groupList.keys()].map(loadGroupMemberList)) // 群成员
     this.logger.mark(`加载了${this.friendList.size}个好友，${this.groupList.size}个群`);
-    this.emit("system.online");
+    this.em("system.online");
+    await Promise.allSettled([...this.groupList.keys()].map(async (group_id)=>{
+        return await loadGroupMemberList.call(this,group_id)
+    })) // 群成员
 }
 
 function qrcodeListener(this: Client, image: Buffer) {
@@ -88,13 +107,13 @@ function qrcodeListener(this: Client, image: Buffer) {
             logQrcode(image);
         } catch { }
         this.logger.mark("二维码图片已保存到：" + file);
-        this.emit("system.login.qrcode", { image });
+        this.em("system.login.qrcode", { image });
     })
 }
 
 function sliderListener(this: Client, url: string) {
     this.logger.mark("收到滑动验证码，请访问以下地址完成滑动，并从网络响应中取出ticket输入：" + url);
-    this.emit("system.login.slider", { url });
+    this.em("system.login.slider", { url });
 }
 
 function tokenUpdatedListener(this: Client, token: string) {
@@ -104,7 +123,7 @@ function tokenUpdatedListener(this: Client, token: string) {
 function kickoffListener(this: Client, message: string) {
     this.logger.warn(message);
     this.terminate();
-    this.emit("system.offline.kickoff", { message });
+    this.em("system.offline.kickoff", { message });
 }
 
 export function bindInternalListeners(this: Client) {

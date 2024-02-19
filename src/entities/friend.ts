@@ -16,7 +16,7 @@ export class Friend extends User {
     }
     static from(this:Client, uid: number){
         const friendInfo=this.friendList.get(uid)
-        if(!friendInfo) throw new Error('Friend not found')
+        if(!friendInfo) throw new Error(`Friend(${uid}) not found`)
         let friend=friendCache.get(friendInfo)
         if(friend) return friend
         friendCache.set(friendInfo, friend =new Friend(this, uid))

@@ -7,7 +7,7 @@ export function handlePrivateMsg(this: Client, proto: pb.Proto) {
     const msg = new PrivateMessageEvent(this,proto)
     if (msg.rawMessage) {
         this.logger.info(`recv from: [Private: ${msg.user_id}(${msg.sub_type})] ` + msg);
-        this.emit("message.private." + msg.sub_type, msg);
+        this.em("message.private." + msg.sub_type, msg);
     }
 }
 
@@ -16,6 +16,6 @@ export function handleGroupMsg(this: Client, proto: pb.Proto) {
     const msg = new GroupMessageEvent(this,proto)
     if (msg.rawMessage) {
         this.logger.info(`recv from: [Group: ${msg.user_id}(${msg.group_id})] ` + msg);
-        this.emit("message.group." + msg.sub_type, msg);
+        this.em("message.group." + msg.sub_type, msg);
     }
 }

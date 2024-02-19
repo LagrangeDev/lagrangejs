@@ -24,7 +24,8 @@ export async function loadFriendList(this: Client) {
                 2: {
                     1: [100, 101, 102]
                 }
-            }],
+            }
+        ],
         10002: [13578, 13579, 13573, 13572, 13568],
         10003: 4051
     });
@@ -90,10 +91,10 @@ export async function loadGroupList(this: Client) {
 }
 
 export async function loadGroupMemberList(this: Client, group_id: number) {
-    let map=this.memberList.get(group_id)
-    if(!map) {
-        map=new Map<number, MemberInfo>()
-        this.memberList.set(group_id,map)
+    let map = this.memberList.get(group_id)
+    if (!map) {
+        map = new Map<number, MemberInfo>()
+        this.memberList.set(group_id, map)
     }
     map.clear()
     const getMemberList = async (group_id: number, token?: string) => {
@@ -112,9 +113,9 @@ export async function loadGroupMemberList(this: Client, group_id: number) {
             },
             15: token // token
         })
-        const res = await this.sendOidbSvcTrpcTcp(0xfe7,3, packet)
+        const res = await this.sendOidbSvcTrpcTcp(0xfe7, 3, packet)
         const payload = pb.decode(res)[4]
-        const [list, next_token] = [payload[2],payload[15]]
+        const [list, next_token] = [payload[2], payload[15]]
         if (!list?.length) return []
         result.push(...list)
         if (next_token) result.push(...await getMemberList.call(this, group_id, next_token))
@@ -125,17 +126,24 @@ export async function loadGroupMemberList(this: Client, group_id: number) {
         const [
             uid,
             user_id,
-        ]=[
+            nickname,
+            card,
+        ] = [
             row[1][2].toString(),
             row[1][4],
+            row[10]?.toString(),
+            row[11]?.[2]?.toString(),
         ]
-        map.set(uid,{
+        map.set(uid, {
             group_id,
             user_id,
             uid,
+            nickname,
+            card,
         })
     }
 }
+
 export async function infoSync(this: Client) {
 
     const request = pb.encode({

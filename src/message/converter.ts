@@ -33,7 +33,6 @@ export class Converter {
     length = 0
     /** 预览文字 */
     brief = ""
-    tasks:Promise<void>[]=[]
     public constructor(private content: Sendable) {
 
     }

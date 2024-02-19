@@ -19,7 +19,7 @@ export class Group extends Contactable {
     }
     static from(this: Client,gid: number){
         const groupInfo=this.groupList.get(gid)
-        if(!groupInfo) throw new Error("Group not found")
+        if(!groupInfo) throw new Error(`Group(${gid}) not found`)
         let group=groupCacheMap.get(groupInfo)
         if(group) return group
         groupCacheMap.set(groupInfo,group=new Group(this,gid))
@@ -71,15 +71,17 @@ export class Group extends Contactable {
 
     async remarkGroup(targetRemark: string){
         const body = pb.encode({
-            1: this.group_id,
-            3: targetRemark
+            1:{
+                1: this.group_id,
+                3: targetRemark
+            }
         });
         const payload = await this.c.sendOidbSvcTrpcTcp(0xf16, 1, body);
         const rsp = pb.decode(payload);
         return !rsp[3];
     }
 
-    async globalMute(isEnable: boolean) {
+    async mute(isEnable: boolean) {
         const body = pb.encode({
             1: this.group_id,
             2: {
@@ -91,7 +93,25 @@ export class Group extends Contactable {
         return !rsp[3];
     }
 
-    async leaveGroup() {
+    /**
+     * 邀请好友加群 (须添加机器人为好友)
+     * @param user_ids
+     */
+    async invite(...user_ids:number[]){
+        const body=pb.encode({
+            1:this.gid,
+            2:user_ids.filter(user_id=>this.c.friendList.has(user_id)).map(user_id=>{
+                return {
+                    1:this.c.friendList.get(user_id)!.uid
+                }
+            }),
+            10:0
+        })
+        const payload=await this.c.sendOidbSvcTrpcTcp(0x758,1,body)
+        const rsp=pb.decode(payload)
+        return !rsp[3]
+    }
+    async quit() {
         const body = pb.encode({
             1: this.group_id
         });
@@ -100,15 +120,8 @@ export class Group extends Contactable {
         return !rsp[3];
     }
 
-    async transfer(target: Member) {
-        const body = pb.encode({
-            1: this.group_id,
-            2: this.c.uid,
-            3: target.uid
-        });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0x89e, 0, body);
-        const rsp = pb.decode(payload);
-        return !rsp[3];
+    async transfer(user_id:number) {
+        return this.pickMember(user_id).setOwner()
     }
 
     private async _fetchMembers() {

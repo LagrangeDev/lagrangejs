@@ -85,7 +85,7 @@ export default class Network extends Socket {
 export async function fetchServerList() {
     const map: typeof host_port = { };
     dns.resolve4(default_host, (err, addresses) => {
-        for (let address of addresses) {
+        for (let address of (addresses||[])) {
             map[address] = 8080;
         }
     });

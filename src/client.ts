@@ -5,7 +5,7 @@ import * as pb from "./core/protobuf";
 
 import {BaseClient, DeviceInfo, generateDeviceInfo, Platform} from "./core";
 import {EventMap} from "./events";
-import {md5, NOOP} from "./core/constants";
+import {md5} from "./core/constants";
 import {bindInternalListeners} from "./internal/listener";
 import {FriendInfo, GroupInfo, MemberInfo} from "./entities";
 import {Friend} from "./entities/friend";
@@ -109,7 +109,21 @@ export class Client extends BaseClient {
 
         if (!this.config.autoServer) this.setRemoteServer("msfwifi.3g.qq.com", 8080);
     }
-
+    /** emit an event */
+    em(name = "", data?: any) {
+        data = Object.defineProperty(data || {}, "self_id", {
+            value: this.uin,
+            writable: true,
+            enumerable: true,
+            configurable: true,
+        });
+        while (true) {
+            this.emit(name, data);
+            let i = name.lastIndexOf(".");
+            if (i === -1) break;
+            name = name.slice(0, i);
+        }
+    }
     async login(password?: string | Buffer) {
         if (password && password.length > 0) {
             let md5pass;
