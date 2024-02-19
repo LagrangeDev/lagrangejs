@@ -5,15 +5,15 @@ import {Quotable, Sendable} from "../message/elements";
 import {MessageRet} from "../events";
 import {drop} from "../errors";
 import * as pb from "../core/protobuf"
-import {randomBytes} from "crypto";
 import {Member} from "./member";
 import {GroupInfo} from "../entities";
+import {FileSystem} from "./fileSystem";
 const groupCacheMap:WeakMap<GroupInfo,Group>=new WeakMap<GroupInfo,Group>();
 export class Group extends Contactable {
+    fileSystem:FileSystem
     get avatar() {
         return `https://p.qlogo.cn/gh/${this.gid}/${this.gid}/0/`
     }
-
     static as(this: Client, gid: number) {
         return new Group(this, Number(gid));
     }
@@ -33,6 +33,7 @@ export class Group extends Contactable {
     protected constructor(c: Client, public readonly gid: number) {
         super(c);
         lock(this, "gid");
+        this.fileSystem=new FileSystem(this)
     }
 
     async sendMsg(content: Sendable,source?:Quotable): Promise<MessageRet> {
