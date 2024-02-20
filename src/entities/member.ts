@@ -39,7 +39,6 @@ export class Member extends User {
         const rsp = pb.decode(packet);
         return !rsp[3];
     }
-
     async kick(rejectAddition: boolean) {
         const body = pb.encode({
             1: this.gid,
@@ -100,5 +99,8 @@ export class Member extends User {
         const packet = await this.c.sendOidbSvcTrpcTcp(0x8fc, 3, body);
         const rsp = pb.decode(packet);
         return !rsp[3];
+    }
+    addFriend(){
+
     }
 }

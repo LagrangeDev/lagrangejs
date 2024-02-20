@@ -58,7 +58,7 @@ export class Group extends Contactable {
         const proto=pb.decode(result)
         return !!proto[3]
     }
-    async renameGroup(targetName: string) {
+    async rename(targetName: string) {
         const body = pb.encode({
             1: this.group_id,
             2: {
@@ -70,7 +70,7 @@ export class Group extends Contactable {
         return !rsp[3];
     }
 
-    async remarkGroup(targetRemark: string){
+    async remark(targetRemark: string){
         const body = pb.encode({
             1:{
                 1: this.group_id,
