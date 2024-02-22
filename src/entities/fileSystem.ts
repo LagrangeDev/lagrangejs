@@ -68,7 +68,7 @@ export class FileSystem{
                         2: 3,
                     },
                 });
-                const payload = await this.c.sendOidbSvcTrpcTcp(0x6d8,3, body);
+                const payload = await this.c.sendOidbSvcTrpcTcp(0x6d8,3, body,true);
                 const rsp=pb.decode(payload)[4]||{}
                 const total = Number(rsp[4])||0,
                     used = Number(rsp[5])||0,
@@ -89,7 +89,7 @@ export class FileSystem{
                         2: 2,
                     },
                 });
-                const payload = await this.c.sendOidbSvcTrpcTcp(0x6d8,2, body);
+                const payload = await this.c.sendOidbSvcTrpcTcp(0x6d8,2, body,true);
                 const rsp = pb.decode(payload)[3];
                 const file_count = Number(rsp[4]),
                     max_file_count = Number(rsp[6]);
@@ -270,7 +270,7 @@ export class FileSystem{
                 6: String(pid),
             },
         });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6,5, body);
+        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6,5, body,true);
         const rsp = pb.decode(payload)[6];
         checkRsp(rsp);
     }
@@ -337,7 +337,7 @@ export class FileSystem{
                 15: 1,
             },
         });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6,0, body);
+        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6,0, body,true);
         const rsp = pb.decode(payload)[1];
         checkRsp(rsp);
         if (!rsp[10]) {
@@ -420,7 +420,7 @@ export class FileSystem{
                 15: 1,
             },
         });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6,0, body);
+        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6,0, body,true);
         const rsp = pb.decode(payload)[1];
         checkRsp(rsp);
         if (!rsp[10]) drop(ErrorCode.GroupFileNotExists, "文件不存在，无法被转发");
@@ -469,7 +469,7 @@ export class FileSystem{
                 4: file.fid,
             },
         });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6,2, body);
+        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6,2, body,true);
         const rsp = pb.decode(payload)[3];
         checkRsp(rsp);
         return {

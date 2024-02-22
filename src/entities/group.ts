@@ -2,13 +2,12 @@ import {Contactable} from "./contactable";
 import {Client} from "../client";
 import {lock} from "../core/constants";
 import {Quotable, Sendable} from "../message/elements";
-import {MessageRet} from "../events";
+import {MessageRet} from "../events/message";
 import {drop} from "../errors";
 import * as pb from "../core/protobuf"
-import {Member} from "./member";
-import {GroupInfo} from "../entities";
+import {GroupMember} from "./groupMember";
 import {FileSystem} from "./fileSystem";
-const groupCacheMap:WeakMap<GroupInfo,Group>=new WeakMap<GroupInfo,Group>();
+const groupCacheMap:WeakMap<Group.Info,Group>=new WeakMap<Group.Info,Group>();
 export class Group extends Contactable {
     fileSystem:FileSystem
     get avatar() {
@@ -17,15 +16,16 @@ export class Group extends Contactable {
     static as(this: Client, gid: number) {
         return new Group(this, Number(gid));
     }
-    static from(this: Client,gid: number){
+    static from(this: Client,gid: number, strict = false):Group{
         const groupInfo=this.groupList.get(gid)
-        if(!groupInfo) throw new Error(`Group(${gid}) not found`)
-        let group=groupCacheMap.get(groupInfo)
-        if(group) return group
-        groupCacheMap.set(groupInfo,group=new Group(this,gid))
+        if(!groupInfo && strict) throw new Error(`Group(${gid}) not found`)
+        let group=groupCacheMap.get(groupInfo!)
+        if(!group) group=new Group(this,gid)
+        if (groupInfo) groupCacheMap.set(groupInfo,group)
         return group
     }
-    pickMember=Member.from.bind(this.c,this.gid)
+    pickMember=GroupMember.from.bind(this.c,this.gid)
+    fetchMembers=Group.fetchMember.bind(this.c,this.gid)
     get group_id() {
         return this.gid;
     }
@@ -118,21 +118,23 @@ export class Group extends Contactable {
         });
         const payload = await this.c.sendOidbSvcTrpcTcp(0x1097, 1, body);
         const rsp = pb.decode(payload);
-        return !rsp[3];
+        const success=!rsp[3]
+        if(success) this.c.groupList.delete(this.gid)
+        return success
     }
 
     async transfer(user_id:number) {
         return this.pickMember(user_id).setOwner()
     }
-
-    private async _fetchMembers() {
+}
+export namespace Group{
+    export async function fetchMember(this:Client,gid:number){
         let token: string | null = null;
-        if (!this.c.memberList.has(this.gid)) this.c.memberList.set(this.gid, new Map);
-
+        if (!this.memberList.has(gid)) this.memberList.set(gid, new Map);
         try {
             while (true) {
                 const request = pb.encode({
-                    1: this.gid,
+                    1: gid,
                     2: 5,
                     3: 2,
                     4: {
@@ -145,29 +147,59 @@ export class Group extends Contactable {
                     },
                     15: token
                 });
-                const response = await this.c.sendOidbSvcTrpcTcp(0xfe7, 3, request);
+                const response = await this.sendOidbSvcTrpcTcp(0xfe7, 3, request);
                 const proto = pb.decode(response);
 
-                const list = this.c.memberList.get(this.gid)!
+                const list = this.memberList.get(gid)!
                 for (let member of proto[4][2]) {
-                    const uin = member[1][4]
-                    let info = {
-                        "group_id": this.gid,
-                        "user_id": uin
+                    let info:GroupMember.Info = {
+                        group_id: gid,
+                        user_id: member[1][4],
+                        uid:member[1][2],
+                        permission:member[107],
+                        level:member[12]?.[2]||0,
+                        card:member[11]?.[2]||'',
+                        nickname:member[10]||'',
+                        join_time:member[100],
+                        last_sent_time:member[101]
                     }
-                    info = Object.assign(list.get(uin) || { }, info)
+                    list.set(info.user_id,info)
                 }
 
                 if (proto[15]) {
                     token = proto[15];
-                }
-                else {
+                } else {
                     break;
                 }
             }
         }
         catch {
-            this.c.logger.error("加载群员列表超时");
+            this.logger.error("加载群员列表超时");
         }
+    }
+}
+export namespace Group{
+    export interface Info{
+        group_id: number;
+        group_name: string;
+        member_count: number;
+        max_member_count: number;
+        owner_id: number;
+        admin_flag: boolean;
+        last_join_time: number;
+        last_sent_time?: number;
+        shutup_time_whole: number;
+        shutup_time_me: number;
+        create_time?: number;
+        grade?: number;
+        max_admin_count?: number;
+        active_member_count?: number;
+        update_time: number;
+    }
+
+    export enum Permission{
+        member,
+        owner,
+        admin
     }
 }

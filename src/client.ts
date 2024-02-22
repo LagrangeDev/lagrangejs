@@ -7,10 +7,9 @@ import {BaseClient, DeviceInfo, generateDeviceInfo, Platform} from "./core";
 import {EventMap} from "./events";
 import {md5} from "./core/constants";
 import {bindInternalListeners} from "./internal/listener";
-import {FriendInfo, GroupInfo, MemberInfo} from "./entities";
 import {Friend} from "./entities/friend";
 import {Group} from "./entities/group";
-import {Member} from "./entities/member";
+import {GroupMember} from "./entities/groupMember";
 
 export interface Client extends BaseClient {
     on<T extends keyof EventMap>(event: T, listener: EventMap<this>[T]): this
@@ -40,9 +39,9 @@ export class Client extends BaseClient {
     readonly config: Required<Config>;
     readonly token: SavedToken;
 
-    readonly friendList = new Map<number, FriendInfo>();
-    readonly groupList = new Map<number, GroupInfo>();
-    readonly memberList = new Map<number, Map<number, MemberInfo>>()
+    readonly friendList = new Map<number, Friend.Info>();
+    readonly groupList = new Map<number, Group.Info>();
+    readonly memberList = new Map<number, Map<number,GroupMember.Info>>()
     get cacheDir(){
         const dir=path.resolve(this.directory,'../image')
         if(!fs.existsSync(dir)) fs.mkdirSync(dir)
@@ -50,7 +49,7 @@ export class Client extends BaseClient {
     }
     pickFriend=Friend.from.bind(this)
     pickGroup=Group.from.bind(this)
-    pickMember=Member.from.bind(this)
+    pickMember=GroupMember.from.bind(this)
 
     constructor(uin: number, conf?: Config) {
         const config = {
@@ -153,14 +152,19 @@ export class Client extends BaseClient {
         return packet[4][3].toString();
     }
 
-    sendOidbSvcTrpcTcp(cmd: number, subCmd: number, buffer: Uint8Array, isUid = false) {
+    sendOidbSvcTrpcTcp(cmd: number, subCmd: number, buffer: Uint8Array, isUid = false,isAfter=false) {
         const command = `OidbSvcTrpcTcp.0x${subCmd.toString(16)}_${subCmd}`;
 
         const result = pb.encode({
             1: cmd,
             2: subCmd,
             4: buffer,
-            12: isUid
+            7:isAfter?{
+                1:undefined,
+                2:[],
+                3:this.appInfo.subAppId
+            }:null,
+            12: isUid,
         });
         return this.sendUni(command, result);
     }
@@ -192,6 +196,7 @@ export interface Config {
     platform?: Platform
     /** 群聊和频道中过滤自己的消息(默认true) */
     ignoreSelf?: boolean
+    cacheMember?:boolean
     /** 数据存储文件夹，需要可写权限，默认主模块下的data文件夹 */
     dataDirectory?: string
     /**

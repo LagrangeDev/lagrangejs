@@ -2,12 +2,12 @@ import { User } from "./user";
 import {Client} from "../client";
 import {lock} from "../core/constants";
 import * as pb from "../core/protobuf"
-import {MemberInfo} from "../entities";
 import {drop} from "../errors";
 import {Quotable, Sendable} from "../message/elements";
-import {MessageRet} from "../events";
-const memberCache:WeakMap<MemberInfo,Member>=new WeakMap<MemberInfo,Member>()
-export class Member extends User {
+import {MessageRet} from "../events/message";
+import {Group} from "./group";
+const memberCache:WeakMap<GroupMember.Info,GroupMember>=new WeakMap<GroupMember.Info,GroupMember>()
+export class GroupMember extends User {
 
     protected constructor(c: Client, public readonly gid: number,uin:number) {
         super(c,uin);
@@ -18,12 +18,12 @@ export class Member extends User {
     get isFriend(){
         return !!this.c.friendList.get(this.uin)
     }
-    static from(this:Client,gid: number,uid:number):Member {
+    static from(this:Client,gid: number,uid:number, strict = false):GroupMember {
         const memberInfo=this.memberList.get(gid)?.get(uid)
-        if(!memberInfo) throw new Error(`Group(${gid}) not exist or Member(${uid}) not found`)
-        let member=memberCache.get(memberInfo)
-        if(member) return member
-        memberCache.set(memberInfo,member=new Member(this,gid,uid))
+        if(!memberInfo && strict) throw new Error(`Group(${gid}) not exist or Member(${uid}) not found`)
+        let member=memberCache.get(memberInfo!)
+        if(!member) member= new GroupMember(this,gid,uid)
+        if(memberInfo)memberCache.set(memberInfo,member)
         return member
     }
     async mute(duration: number) {
@@ -102,5 +102,15 @@ export class Member extends User {
     }
     addFriend(){
 
+    }
+}
+export namespace GroupMember{
+    export interface Info extends User.Info{
+        group_id: number;
+        permission:Group.Permission
+        level:number
+        card?:string
+        join_time:number
+        last_sent_time:number
     }
 }

@@ -3,8 +3,10 @@ import * as path from "path";
 import * as pb from "../core/protobuf";
 import { PNG } from "pngjs";
 import {Client} from "../client";
-import {handleGroupMsg, handlePrivateMsg} from "./msgpush";
-import {loadFriendList, loadGroupList, loadGroupMemberList} from "./internal";
+import {handleGroupMsg, handlePrivateMsg, handleTempMsg} from "./msgpush";
+import {loadFriendList, loadGroupList} from "./internal";
+import {Group} from "../entities/group";
+import {GroupAdminChangeNotice} from "../events/notice";
 
 async function msgPushListener(this: Client, payload: Buffer) {
     const proto = pb.decode(payload);
@@ -14,21 +16,33 @@ async function msgPushListener(this: Client, payload: Buffer) {
         case 82: // group msg
             handleGroupMsg.call(this, proto[1])
             break;
+        case 529: // private file
+        case 208: // private record
         case 166: // friend msg
             handlePrivateMsg.call(this, proto[1]);
             break;
+        case 141:
+            handleTempMsg.call(this,proto[1])
         case 84: // group request join notice
         case 525: // group request invite notice
-            if(!proto[1][3][1]) break
+            if(proto[1][3]?.[2]) break
         case 87: // group invite notice
+            if(proto[1][3]?.[2]){
+
+                break;
+            }
         case 44: // group admin change
+            if(proto[1][3]?.[2]){
+                const event=new GroupAdminChangeNotice(this,proto[1][3][2])
+                this.em('notice.group.admin_change',event)
+                break
+            }
         case 33: // group member increase
         case 34: // group member decrease
-        case 0x210: // friend request notice
+        case 0x210: // friend request
             if(proto[1][2][2]!==226) break;
         case 0x2dc:
             if(proto[1][2][2]===17) { // group recall
-
             }
             else if(proto[1][2][2]===12) { // group mute
 
@@ -93,11 +107,13 @@ async function onlineListener(this: Client, token: Buffer, nickname: string, gen
         loadFriendList.call(this),// 好友列表
         loadGroupList.call(this),// 群列表
     ]);
+    if(this.config.cacheMember){
+        for(const [gid] of this.groupList){
+            Group.fetchMember.call(this,gid)
+        }
+    }
     this.logger.mark(`加载了${this.friendList.size}个好友，${this.groupList.size}个群`);
     this.em("system.online");
-    await Promise.allSettled([...this.groupList.keys()].map(async (group_id)=>{
-        return await loadGroupMemberList.call(this,group_id)
-    })) // 群成员
 }
 
 function qrcodeListener(this: Client, image: Buffer) {

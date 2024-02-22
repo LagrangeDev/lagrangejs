@@ -35,3 +35,10 @@ export class User extends Contactable {
         return !packet[3];
     }
 }
+export namespace User{
+    export interface Info{
+        user_id: number;
+        uid: string;
+        nickname: string;
+    }
+}

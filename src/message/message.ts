@@ -63,15 +63,24 @@ export abstract class Message implements Quotable, Forwardable {
 }
 
 export class PrivateMessage extends Message {
-    sub_type = "friend" as "friend" | "group" | "other" | "self"
+    sub_type = "friend" as "friend" | "group" | "temp" | "self"
 
     constructor(proto: pb.Proto) {
         super(proto);
     }
 }
-
+export class TempMessage extends Message {
+    sub_type = "temp" as "friend" | "group" | "temp" | "self"
+    group_id:number
+    group_name:string
+    constructor(proto: pb.Proto) {
+        super(proto);
+        this.group_id = proto[1][8][1];
+        this.group_name = proto[1][8][7].toString();
+    }
+}
 export class GroupMessage extends Message {
-    sub_type = "group" as "friend" | "group" | "other" | "self";
+    sub_type = "group" as "friend" | "group" | "temp" | "self";
     group_id: number;
     group_name: string;
 

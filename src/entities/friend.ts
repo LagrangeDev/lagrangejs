@@ -1,12 +1,11 @@
 import {User} from "./user";
 import {drop, ErrorCode} from "../errors";
 import {FileElem, Quotable, Sendable} from "../message/elements";
-import {MessageRet} from "../events";
+import {MessageRet} from "../events/message";
 import {Client} from "../client";
 import * as pb from '../core/protobuf'
-import {FriendInfo} from "../entities";
 import {hide, lock} from "../core/constants";
-const friendCache:WeakMap<FriendInfo,Friend>=new WeakMap<FriendInfo,Friend>();
+const friendCache:WeakMap<Friend.Info,Friend>=new WeakMap<Friend.Info,Friend>();
 export class Friend extends User {
 
     protected constructor(c: Client, uin: number) {
@@ -15,12 +14,12 @@ export class Friend extends User {
         lock(this, "uid");
         hide(this, "_info");
     }
-    static from(this:Client, uid: number){
+    static from(this:Client, uid: number, strict = false):Friend{
         const friendInfo=this.friendList.get(uid)
-        if(!friendInfo) throw new Error(`Friend(${uid}) not found`)
-        let friend=friendCache.get(friendInfo)
-        if(friend) return friend
-        friendCache.set(friendInfo, friend =new Friend(this, uid))
+        if(!friendInfo && strict) throw new Error(`Friend(${uid}) not found`)
+        let friend=friendCache.get(friendInfo!)
+        if(!friend) return friend=new Friend(this,uid)
+        if(friendInfo)friendCache.set(friendInfo, friend =new Friend(this, uid))
         return friend
     }
     /**
@@ -74,7 +73,10 @@ export class Friend extends User {
         const time = rsp[3];
         return { seq, time }
     }
-
-
-
+}
+export namespace Friend{
+    export interface Info extends User.Info{
+        remark: string;
+        class_id: number;
+    }
 }

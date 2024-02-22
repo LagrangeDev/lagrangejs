@@ -1,7 +1,6 @@
 import * as pb from "../core/protobuf";
 import {Client} from "../client";
 import {randomBytes} from "crypto";
-import {MemberInfo} from "../entities";
 
 export async function loadFriendList(this: Client) {
     const request = pb.encode({
@@ -90,59 +89,6 @@ export async function loadGroupList(this: Client) {
     })
 }
 
-export async function loadGroupMemberList(this: Client, group_id: number) {
-    let map = this.memberList.get(group_id)
-    if (!map) {
-        map = new Map<number, MemberInfo>()
-        this.memberList.set(group_id, map)
-    }
-    map.clear()
-    const getMemberList = async (group_id: number, token?: string) => {
-        const result: pb.Proto[] = []
-        const packet = pb.encode({
-            1: group_id,
-            2: 5,
-            3: 2,
-            4: {
-                10: 1, // name
-                11: 1, // card
-                12: 1, // level
-                100: 1, // join_time
-                101: 1, // last_msg_time
-                107: 1, // permission
-            },
-            15: token // token
-        })
-        const res = await this.sendOidbSvcTrpcTcp(0xfe7, 3, packet)
-        const payload = pb.decode(res)[4]
-        const [list, next_token] = [payload[2], payload[15]]
-        if (!list?.length) return []
-        result.push(...list)
-        if (next_token) result.push(...await getMemberList.call(this, group_id, next_token))
-        return result
-    }
-    const rowList = await getMemberList.call(this, group_id)
-    for (const row of rowList) {
-        const [
-            uid,
-            user_id,
-            nickname,
-            card,
-        ] = [
-            row[1][2].toString(),
-            row[1][4],
-            row[10]?.toString(),
-            row[11]?.[2]?.toString(),
-        ]
-        map.set(uid, {
-            group_id,
-            user_id,
-            uid,
-            nickname,
-            card,
-        })
-    }
-}
 
 export async function infoSync(this: Client) {
 
