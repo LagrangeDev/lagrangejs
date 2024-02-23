@@ -153,7 +153,7 @@ export class Client extends BaseClient {
     }
 
     sendOidbSvcTrpcTcp(cmd: number, subCmd: number, buffer: Uint8Array, isUid = false,isAfter=false) {
-        const command = `OidbSvcTrpcTcp.0x${subCmd.toString(16)}_${subCmd}`;
+        const command = `OidbSvcTrpcTcp.0x${cmd.toString(16)}_${subCmd}`;
 
         const result = pb.encode({
             1: cmd,
