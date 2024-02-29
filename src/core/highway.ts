@@ -2,7 +2,7 @@ import * as stream from "stream"
 import * as net from "net"
 import { randomBytes } from "crypto"
 import http from "http"
-import {  pb, ApiRejection } from "../core"
+import { pb, ApiRejection } from "../core"
 import { ErrorCode } from "../errors"
 import { md5, NOOP, BUF0, int32ip2str } from "../common"
 
@@ -90,7 +90,7 @@ class HighwayTransform extends stream.Transform {
 }
 
 /** highway上传数据 (只能上传流) */
-export function highwayUpload(this: Client, readable: stream.Readable, obj: HighwayUploadExt, ip: string | number="htdata3.qq.com", port: number=80): Promise<pb.Proto> {
+export function highwayUpload(this: Client, readable: stream.Readable, obj: HighwayUploadExt, ip: string | number = "htdata3.qq.com", port: number = 80): Promise<pb.Proto> {
     ip = int32ip2str(ip)
     if (!port) throw new ApiRejection(ErrorCode.NoUploadChannel, "没有上传通道，如果你刚刚登录，请等待几秒")
     if (!readable) throw new ApiRejection(ErrorCode.HighwayFileTypeError, "不支持的file类型")

@@ -1,4 +1,4 @@
-export interface RequestEvent{
-    approve():Promise<boolean>
-    reject(reason?:string):Promise<boolean>
+export interface RequestEvent {
+    approve(): Promise<boolean>
+    reject(reason?: string): Promise<boolean>
 }

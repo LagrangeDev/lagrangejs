@@ -1,29 +1,29 @@
 import { User } from "./user";
-import {Client} from "../client";
-import {lock} from "../core/constants";
+import { Client } from "../client";
+import { lock } from "../core/constants";
 import * as pb from "../core/protobuf"
-import {drop} from "../errors";
-import {Quotable, Sendable} from "../message/elements";
-import {MessageRet} from "../events/message";
-import {Group} from "./group";
-const memberCache:WeakMap<GroupMember.Info,GroupMember>=new WeakMap<GroupMember.Info,GroupMember>()
+import { drop } from "../errors";
+import { Quotable, Sendable } from "../message/elements";
+import { MessageRet } from "../events/message";
+import { Group } from "./group";
+const memberCache: WeakMap<GroupMember.Info, GroupMember> = new WeakMap<GroupMember.Info, GroupMember>()
 export class GroupMember extends User {
 
-    protected constructor(c: Client, public readonly gid: number,uin:number) {
-        super(c,uin);
-        this.uid=c.memberList.get(gid)?.get(uin)?.uid
+    protected constructor(c: Client, public readonly gid: number, uin: number) {
+        super(c, uin);
+        this.uid = c.memberList.get(gid)?.get(uin)?.uid
         lock(this, "uid");
         lock(this, "gid");
     }
-    get isFriend(){
+    get isFriend() {
         return !!this.c.friendList.get(this.uin)
     }
-    static from(this:Client,gid: number,uid:number, strict = false):GroupMember {
-        const memberInfo=this.memberList.get(gid)?.get(uid)
-        if(!memberInfo && strict) throw new Error(`Group(${gid}) not exist or Member(${uid}) not found`)
-        let member=memberCache.get(memberInfo!)
-        if(!member) member= new GroupMember(this,gid,uid)
-        if(memberInfo)memberCache.set(memberInfo,member)
+    static from(this: Client, gid: number, uid: number, strict = false): GroupMember {
+        const memberInfo = this.memberList.get(gid)?.get(uid)
+        if (!memberInfo && strict) throw new Error(`Group(${gid}) not exist or Member(${uid}) not found`)
+        let member = memberCache.get(memberInfo!)
+        if (!member) member = new GroupMember(this, gid, uid)
+        if (memberInfo) memberCache.set(memberInfo, member)
         return member
     }
     async mute(duration: number) {
@@ -65,7 +65,7 @@ export class GroupMember extends User {
     /**
      * 设为群主
      */
-    async setOwner(){
+    async setOwner() {
         const body = pb.encode({
             1: this.gid,
             2: this.c.uid,
@@ -73,11 +73,11 @@ export class GroupMember extends User {
         });
         const packet = await this.c.sendOidbSvcTrpcTcp(0x89e, 0, body);
         const rsp = pb.decode(packet);
-        return!rsp[3];
+        return !rsp[3];
     }
-    async sendMsg(content: Sendable, source?: Quotable): Promise<MessageRet>{
-        if(this.isFriend) return this.asFriend().sendMsg(content,source) // 是好友，直接走私聊
-        const { rich, brief } = await this._preprocess(content,source);
+    async sendMsg(content: Sendable, source?: Quotable): Promise<MessageRet> {
+        if (this.isFriend) return this.asFriend().sendMsg(content, source) // 是好友，直接走私聊
+        const { rich, brief } = await this._preprocess(content, source);
         const seq = this.c.sig.seq + 1;
         const rsp = await this._sendMsg({ 1: rich })
         if (rsp[1] !== 0) {
@@ -100,17 +100,17 @@ export class GroupMember extends User {
         const rsp = pb.decode(packet);
         return !rsp[3];
     }
-    addFriend(){
+    addFriend() {
 
     }
 }
-export namespace GroupMember{
-    export interface Info extends User.Info{
+export namespace GroupMember {
+    export interface Info extends User.Info {
         group_id: number;
-        permission:Group.Permission
-        level:number
-        card?:string
-        join_time:number
-        last_sent_time:number
+        permission: Group.Permission
+        level: number
+        card?: string
+        join_time: number
+        last_sent_time: number
     }
 }

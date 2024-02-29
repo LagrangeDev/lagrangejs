@@ -1,4 +1,4 @@
-import {md5} from "./constants";
+import { md5 } from "./constants";
 
 export enum Platform {
     Linux,
@@ -11,7 +11,7 @@ export type DeviceInfo = ReturnType<typeof generateDeviceInfo>;
 
 const linux = {
     os: "Linux",
-    kernel:"Linux",
+    kernel: "Linux",
     vendorOs: "linux",
 
     currentVersion: "3.1.2-13107",
@@ -22,7 +22,7 @@ const linux = {
     packageName: "com.tencent.qq",
     wtLoginSdk: "nt.wtlogin.0.0.1",
     packageSign: "V1_LNX_NQ_3.1.2-13107_RDM_B",
-    appId:  1600001615,
+    appId: 1600001615,
     subAppId: 537146866,
     appIdQrCode: 13697054,
     appClientVersion: 13172,
@@ -33,14 +33,14 @@ const linux = {
 };
 
 const macOS: AppInfo = {
-    os:  "Mac",
-    kernel:  "Darwin",
-    vendorOs:  "mac",
+    os: "Mac",
+    kernel: "Darwin",
+    vendorOs: "mac",
 
-    currentVersion:  "6.9.20-17153",
-    buildVersion:  17153,
+    currentVersion: "6.9.20-17153",
+    buildVersion: 17153,
     ptVersion: "2.0.0",
-    miscBitmap:  32764,
+    miscBitmap: 32764,
     ptOsVersion: 23,
     packageName: "com.tencent.qq",
     wtLoginSdk: "nt.wtlogin.0.0.1",
@@ -55,7 +55,7 @@ const macOS: AppInfo = {
     NTLoginType: 5
 }
 
-const appList: { [platform in Platform]: AppInfo } =  {
+const appList: { [platform in Platform]: AppInfo } = {
     [Platform.Windows]: linux, // TODO: AppInfo for windows
     [Platform.Linux]: linux,
     [Platform.MacOS]: macOS,
@@ -65,7 +65,7 @@ export function getAppInfo(p: Platform): AppInfo {
     return appList[p] || appList[Platform.Linux]
 }
 
-export function generateDeviceInfo(uin: string | number){
+export function generateDeviceInfo(uin: string | number) {
     const guid = typeof uin === "string" ? uin : md5(uin.toString()).toString("hex");
     return {
         guid: guid,

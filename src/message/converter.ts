@@ -1,14 +1,14 @@
 import * as pb from "../core/protobuf";
-import {Image} from "./image";
+import { Image } from "./image";
 import {
     AtElem, BFaceElem, FaceElem, FileElem, ForwardElem, ImageElem, JsonElem, MessageElem, Quotable,
     RecordElem, ReplyElem, Sendable, TextElem, VideoElem, XmlElem
 } from "./elements";
-import {FACE_OLD_BUF, facemap} from "./face";
-import {deflateSync} from "zlib";
-import {Contactable} from "../entities/contactable";
-import {escapeXml, uuid} from "../common";
-import {rand2uuid} from "./message";
+import { FACE_OLD_BUF, facemap } from "./face";
+import { deflateSync } from "zlib";
+import { Contactable } from "../entities/contactable";
+import { escapeXml, uuid } from "../common";
+import { rand2uuid } from "./message";
 
 const BUF1 = Buffer.from([1]);
 
@@ -36,15 +36,15 @@ export class Converter {
     public constructor(private content: Sendable) {
 
     }
-    async convert(contactable:Contactable){
+    async convert(contactable: Contactable) {
         if (typeof this.content === "string") {
             this._text(this.content);
         }
         else if (Array.isArray(this.content)) {
-            await Promise.allSettled(this.content.map(item=>this._convert(item,contactable)))
+            await Promise.allSettled(this.content.map(item => this._convert(item, contactable)))
         }
         else {
-            await this._convert(this.content,contactable);
+            await this._convert(this.content, contactable);
         }
 
         if (!this.elems.length && !this.rich[4]) {
@@ -52,14 +52,14 @@ export class Converter {
         }
         return this
     }
-    private async _convert(elem: MessageElem | string,contactable:Contactable) {
+    private async _convert(elem: MessageElem | string, contactable: Contactable) {
         if (typeof elem === "string") {
             this._text(elem);
         }
         else if (Reflect.has(this, elem.type)) {
-            const method=Reflect.get(this,elem.type)
-            if(typeof method!=='function') return
-            await (method as Function).apply(this,[elem,contactable])
+            const method = Reflect.get(this, elem.type)
+            if (typeof method !== 'function') return
+            await (method as Function).apply(this, [elem, contactable])
         }
     }
 
@@ -80,12 +80,12 @@ export class Converter {
         this._text(elem.text);
     }
     /** 引用回复 */
-    async quote(source: Quotable,contactable:Contactable) {
-        const converter=await new Converter(source.message || "").convert(contactable)
+    async quote(source: Quotable, contactable: Contactable) {
+        const converter = await new Converter(source.message || "").convert(contactable)
         const elems = converter.elems
         const tmp = this.brief
         if (!contactable.dm) {
-            this.at({ type: "at", qq: source.user_id },contactable)
+            this.at({ type: "at", qq: source.user_id }, contactable)
             this.elems.unshift(this.elems.pop()!)
         }
         this.elems.unshift({
@@ -103,7 +103,7 @@ export class Converter {
         })
         this.brief = `[回复${this.brief.replace(tmp, "")}]` + tmp
     }
-    private at(elem: AtElem,contactable: Contactable) {
+    private at(elem: AtElem, contactable: Contactable) {
         let display;
         let { qq, id, text } = elem;
 
@@ -134,7 +134,7 @@ export class Converter {
     }
 
     private face(elem: FaceElem) {
-        let { id, text,qlottie } = elem;
+        let { id, text, qlottie } = elem;
         id = Number(id);
         if (id < 0 || id > 0xffff || isNaN(id)) {
             throw new Error("wrong face id: " + id)
@@ -222,22 +222,22 @@ export class Converter {
         this.brief += "[表情]";
     }
 
-    private async forward(elem: ForwardElem,contactable:Contactable) {
-        if(elem.m_resid) {
-            const forwardList=await contactable.getForwardMsg(elem.m_resid,elem.m_fileName)
-            if(!forwardList) return
+    private async forward(elem: ForwardElem, contactable: Contactable) {
+        if (elem.m_resid) {
+            const forwardList = await contactable.getForwardMsg(elem.m_resid, elem.m_fileName)
+            if (!forwardList) return
             return this.json({
-                type:'json',
-                data:{
+                type: 'json',
+                data: {
                     "app": "com.tencent.multimsg",
                     "config": { "autosize": 1, "forward": 1, "round": 1, "type": "normal", "width": 300 },
                     "desc": "[聊天记录]",
                     "extra": "",
                     "meta": {
                         "detail": {
-                            "news": forwardList.slice(0,4).map(item=>{
+                            "news": forwardList.slice(0, 4).map(item => {
                                 return {
-                                    text:`${escapeXml(item.nickname)}: ${escapeXml(item.raw_message.slice(0, 50))}`
+                                    text: `${escapeXml(item.nickname)}: ${escapeXml(item.raw_message.slice(0, 50))}`
                                 }
                             }),
                             "resid": elem.m_resid,
@@ -288,12 +288,12 @@ export class Converter {
         this._text(text);
     }
 
-    private async image(elem: ImageElem,contactable:Contactable) {
+    private async image(elem: ImageElem, contactable: Contactable) {
         const img = new Image(elem, contactable.dm, contactable.c.cacheDir)
-        const proto=await img.getProto()
+        const proto = await img.getProto()
         await contactable.uploadImage(img)
         this.elems.push(
-            contactable.dm ? {4: proto} : {8: proto}
+            contactable.dm ? { 4: proto } : { 8: proto }
         )
         this.brief += "[图片]"
     }
@@ -312,16 +312,16 @@ export class Converter {
     }
     private json(elem: JsonElem) {
         this.elems.push({
-            1:{
-                1: elem.res_id||''
+            1: {
+                1: elem.res_id || ''
             },
-        },{
-            12:{
-                1:Buffer.concat([
+        }, {
+            12: {
+                1: Buffer.concat([
                     BUF1,
-                    deflateSync(typeof elem.data==="string"?elem.data:JSON.stringify(elem.data))
+                    deflateSync(typeof elem.data === "string" ? elem.data : JSON.stringify(elem.data))
                 ]),
-                2:1
+                2: 1
             }
         });
         this.brief += "[json消息]";

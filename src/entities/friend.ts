@@ -1,25 +1,25 @@
-import {User} from "./user";
-import {drop, ErrorCode} from "../errors";
-import {FileElem, Quotable, Sendable} from "../message/elements";
-import {MessageRet} from "../events/message";
-import {Client} from "../client";
+import { User } from "./user";
+import { drop, ErrorCode } from "../errors";
+import { FileElem, Quotable, Sendable } from "../message/elements";
+import { MessageRet } from "../events/message";
+import { Client } from "../client";
 import * as pb from '../core/protobuf'
-import {hide, lock} from "../core/constants";
-const friendCache:WeakMap<Friend.Info,Friend>=new WeakMap<Friend.Info,Friend>();
+import { hide, lock } from "../core/constants";
+const friendCache: WeakMap<Friend.Info, Friend> = new WeakMap<Friend.Info, Friend>();
 export class Friend extends User {
 
     protected constructor(c: Client, uin: number) {
-        super(c,uin);
-        this.uid=c.friendList.get(uin)?.uid
+        super(c, uin);
+        this.uid = c.friendList.get(uin)?.uid
         lock(this, "uid");
         hide(this, "_info");
     }
-    static from(this:Client, uid: number, strict = false):Friend{
-        const friendInfo=this.friendList.get(uid)
-        if(!friendInfo && strict) throw new Error(`Friend(${uid}) not found`)
-        let friend=friendCache.get(friendInfo!)
-        if(!friend) return friend=new Friend(this,uid)
-        if(friendInfo)friendCache.set(friendInfo, friend =new Friend(this, uid))
+    static from(this: Client, uid: number, strict = false): Friend {
+        const friendInfo = this.friendList.get(uid)
+        if (!friendInfo && strict) throw new Error(`Friend(${uid}) not found`)
+        let friend = friendCache.get(friendInfo!)
+        if (!friend) return friend = new Friend(this, uid)
+        if (friendInfo) friendCache.set(friendInfo, friend = new Friend(this, uid))
         return friend
     }
     /**
@@ -27,16 +27,16 @@ export class Friend extends User {
      * @param fid 文件id
      * @param hash 文件hash
      */
-    async getFileInfo(fid: string,hash?:string) {
+    async getFileInfo(fid: string, hash?: string) {
         const body = pb.encode({
             14: {
                 10: this.c.uin,
                 20: fid,
-                60:hash,
-                601:0
+                60: hash,
+                601: 0
             }
         });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0xe37,1200,
+        const payload = await this.c.sendOidbSvcTrpcTcp(0xe37, 1200,
             body,
         );
         const rsp = pb.decode(payload)[14];
@@ -64,7 +64,7 @@ export class Friend extends User {
     async sendMsg(content: Sendable, source?: Quotable): Promise<MessageRet> {
         const { rich, brief } = await this._preprocess(content, source);
         const seq = this.c.sig.seq + 1;
-        const rsp =await this._sendMsg({ 1: rich })
+        const rsp = await this._sendMsg({ 1: rich })
         if (rsp[1] !== 0) {
             this.c.logger.error(`failed to send: [Private: ${this.uin}] ${rsp[2]}(${rsp[1]})`);
             drop(rsp[1], rsp[2]);
@@ -74,8 +74,8 @@ export class Friend extends User {
         return { seq, time }
     }
 }
-export namespace Friend{
-    export interface Info extends User.Info{
+export namespace Friend {
+    export interface Info extends User.Info {
         remark: string;
         class_id: number;
     }

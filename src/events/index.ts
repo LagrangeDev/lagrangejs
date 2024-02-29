@@ -1,13 +1,13 @@
-import {LoginErrorCode} from "../errors";
-import {GroupMessageEvent, PrivateMessageEvent} from "./message";
+import { LoginErrorCode } from "../errors";
+import { GroupMessageEvent, PrivateMessageEvent } from "./message";
 
 export interface EventMap<T = any> {
     /** 私聊或群聊 */
-    "message":(this:T,event:PrivateMessageEvent|GroupMessageEvent)=>void
+    "message": (this: T, event: PrivateMessageEvent | GroupMessageEvent) => void
     /** 群聊 */
-    "message.group":(this:T,event:GroupMessageEvent)=>void
+    "message.group": (this: T, event: GroupMessageEvent) => void
     /** 私聊 */
-    "message.private":(this:T,event:PrivateMessageEvent)=>void
+    "message.private": (this: T, event: PrivateMessageEvent) => void
     /** 收到二维码 */
     "system.login.qrcode": (this: T, event: { image: Buffer }) => void
     /** 收到滑动验证码 */

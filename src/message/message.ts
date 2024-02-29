@@ -1,7 +1,7 @@
-import {Forwardable, Quotable, Sendable} from "./elements";
-import {parse, Parser} from "./parser";
+import { Forwardable, Quotable, Sendable } from "./elements";
+import { parse, Parser } from "./parser";
 import * as pb from "../core/protobuf";
-import {lock} from "../core/constants";
+import { lock } from "../core/constants";
 
 export function rand2uuid(rand: number) {
     return 16777216n << 32n | BigInt(rand)
@@ -71,8 +71,8 @@ export class PrivateMessage extends Message {
 }
 export class TempMessage extends Message {
     sub_type = "temp" as "friend" | "group" | "temp" | "self"
-    group_id:number
-    group_name:string
+    group_id: number
+    group_name: string
     constructor(proto: pb.Proto) {
         super(proto);
         this.group_id = proto[1][8][1];

@@ -1,13 +1,13 @@
-import {Group} from "./group";
+import { Group } from "./group";
 import * as pb from "../core/protobuf"
-import {drop, ErrorCode} from "../errors";
-import {randomBytes} from "crypto";
+import { drop, ErrorCode } from "../errors";
+import { randomBytes } from "crypto";
 import * as common from "../common";
 import fs from "fs";
 import path from "path";
-import {highwayUpload} from "../core/highway";
-import {Readable} from "stream";
-import {FileElem} from "../message/elements";
+import { highwayUpload } from "../core/highway";
+import { Readable } from "stream";
+import { FileElem } from "../message/elements";
 
 /** 群文件/目录共通属性 */
 export interface GfsBaseStat {
@@ -50,16 +50,16 @@ function checkRsp(rsp: pb.Proto) {
     drop(rsp[1], rsp[2]);
 }
 
-export class FileSystem{
-    get c(){
+export class FileSystem {
+    get c() {
         return this.group.c
     }
-    get gid(){
+    get gid() {
         return this.group.gid
     }
-    constructor(private group:Group) {
+    constructor(private group: Group) {
     }
-    async df(){
+    async df() {
         const [a, b] = await Promise.all([
             (async () => {
                 const body = pb.encode({
@@ -68,10 +68,10 @@ export class FileSystem{
                         2: 3,
                     },
                 });
-                const payload = await this.c.sendOidbSvcTrpcTcp(0x6d8,3, body,true);
-                const rsp=pb.decode(payload)[4]||{}
-                const total = Number(rsp[4])||0,
-                    used = Number(rsp[5])||0,
+                const payload = await this.c.sendOidbSvcTrpcTcp(0x6d8, 3, body, true);
+                const rsp = pb.decode(payload)[4] || {}
+                const total = Number(rsp[4]) || 0,
+                    used = Number(rsp[5]) || 0,
                     free = total - used;
                 return {
                     /** 总空间 */
@@ -89,7 +89,7 @@ export class FileSystem{
                         2: 2,
                     },
                 });
-                const payload = await this.c.sendOidbSvcTrpcTcp(0x6d8,2, body,true);
+                const payload = await this.c.sendOidbSvcTrpcTcp(0x6d8, 2, body, true);
                 const rsp = pb.decode(payload)[3];
                 const file_count = Number(rsp[4]),
                     max_file_count = Number(rsp[6]);
@@ -111,7 +111,7 @@ export class FileSystem{
                 4: String(fid),
             },
         });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d8,0, body);
+        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d8, 0, body);
         const rsp = pb.decode(payload)[1];
         checkRsp(rsp);
         return genGfsFileStat(rsp[4]);
@@ -149,7 +149,7 @@ export class FileSystem{
                 13: Number(start) || 0,
             },
         });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d8,1, body);
+        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d8, 1, body);
         const rsp = pb.decode(payload)[2];
         checkRsp(rsp);
         const arr: (GfsDirStat | GfsFileStat)[] = [];
@@ -161,6 +161,7 @@ export class FileSystem{
         }
         return arr;
     }
+    
     /** {@link dir} 的别名 */
     ls(pid = "/", start = 0, limit = 100) {
         return this.dir(pid, start, limit);
@@ -175,7 +176,7 @@ export class FileSystem{
                 4: String(name),
             },
         });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d7,0, body);
+        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d7, 0, body);
         const rsp = pb.decode(payload)[1];
         checkRsp(rsp);
         return genGfsDirStat(rsp[4]);
@@ -197,7 +198,7 @@ export class FileSystem{
                     5: file.fid,
                 },
             });
-            const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6,3, body);
+            const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6, 3, body);
             rsp = payload[4];
         } else {
             //rm dir
@@ -208,7 +209,7 @@ export class FileSystem{
                     3: String(fid),
                 },
             });
-            const payload = await this.c.sendOidbSvcTrpcTcp(0x6d7,1, body);
+            const payload = await this.c.sendOidbSvcTrpcTcp(0x6d7, 1, body);
             rsp = pb.decode(payload)[2];
         }
         checkRsp(rsp);
@@ -235,7 +236,7 @@ export class FileSystem{
                     6: String(name),
                 },
             });
-            const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6,4, body);
+            const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6, 4, body);
             rsp = payload[5];
         } else {
             //rename dir
@@ -247,7 +248,7 @@ export class FileSystem{
                     4: String(name),
                 },
             });
-            const payload = await this.c.sendOidbSvcTrpcTcp(0x6d7,2, body);
+            const payload = await this.c.sendOidbSvcTrpcTcp(0x6d7, 2, body);
             rsp = pb.decode(payload)[3];
         }
         checkRsp(rsp);
@@ -270,7 +271,7 @@ export class FileSystem{
                 6: String(pid),
             },
         });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6,5, body,true);
+        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6, 5, body, true);
         const rsp = pb.decode(payload)[6];
         checkRsp(rsp);
     }
@@ -288,7 +289,7 @@ export class FileSystem{
                 },
             },
         });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d9,4, body);
+        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d9, 4, body);
         let rsp = pb.decode(payload)[5];
         checkRsp(rsp);
         rsp = rsp[4];
@@ -337,7 +338,7 @@ export class FileSystem{
                 15: 1,
             },
         });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6,0, body,true);
+        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6, 0, body, true);
         const rsp = pb.decode(payload)[1];
         checkRsp(rsp);
         if (!rsp[10]) {
@@ -420,7 +421,7 @@ export class FileSystem{
                 15: 1,
             },
         });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6,0, body,true);
+        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6, 0, body, true);
         const rsp = pb.decode(payload)[1];
         checkRsp(rsp);
         if (!rsp[10]) drop(ErrorCode.GroupFileNotExists, "文件不存在，无法被转发");
@@ -449,7 +450,7 @@ export class FileSystem{
                 80: fid,
             },
         });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0xe37,60100, body);
+        const payload = await this.c.sendOidbSvcTrpcTcp(0xe37, 60100, body);
         const rsp = pb.decode(payload)[90000];
         if (rsp[10] !== 0) drop(ErrorCode.OfflineFileNotExists, "文件不存在，无法被转发");
         return await this._feed(String(rsp[30]), rsp[50]);
@@ -469,7 +470,7 @@ export class FileSystem{
                 4: file.fid,
             },
         });
-        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6,2, body,true);
+        const payload = await this.c.sendOidbSvcTrpcTcp(0x6d6, 2, body, true);
         const rsp = pb.decode(payload)[3];
         checkRsp(rsp);
         return {

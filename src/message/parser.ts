@@ -1,9 +1,9 @@
 import { unzipSync } from "zlib"
 import { pb } from "../core"
 import * as T from "./elements"
-import {facemap} from "./face";
-import {buildImageFileParam} from "./image";
-import {AtElem, TextElem} from "./elements";
+import { facemap } from "./face";
+import { buildImageFileParam } from "./image";
+import { AtElem, TextElem } from "./elements";
 
 /** 解析消息 */
 export function parse(rich: pb.Proto | pb.Proto[], uin?: number) {
@@ -15,7 +15,7 @@ export class Parser {
 
     message: T.MessageElem[] = [];
     brief = "";
-    content:string|Record<string, any> = "";
+    content: string | Record<string, any> = "";
     /** 匿名情报 */
     anon?: pb.Proto;
     /** 额外情报 */

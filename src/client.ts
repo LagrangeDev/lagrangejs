@@ -3,13 +3,13 @@ import * as fs from "fs";
 import * as log4js from "log4js"
 import * as pb from "./core/protobuf";
 
-import {BaseClient, DeviceInfo, generateDeviceInfo, Platform} from "./core";
-import {EventMap} from "./events";
-import {md5} from "./core/constants";
-import {bindInternalListeners} from "./internal/listener";
-import {Friend} from "./entities/friend";
-import {Group} from "./entities/group";
-import {GroupMember} from "./entities/groupMember";
+import { BaseClient, DeviceInfo, generateDeviceInfo, Platform } from "./core";
+import { EventMap } from "./events";
+import { md5 } from "./core/constants";
+import { bindInternalListeners } from "./internal/listener";
+import { Friend } from "./entities/friend";
+import { Group } from "./entities/group";
+import { GroupMember } from "./entities/groupMember";
 
 export interface Client extends BaseClient {
     on<T extends keyof EventMap>(event: T, listener: EventMap<this>[T]): this
@@ -41,15 +41,15 @@ export class Client extends BaseClient {
 
     readonly friendList = new Map<number, Friend.Info>();
     readonly groupList = new Map<number, Group.Info>();
-    readonly memberList = new Map<number, Map<number,GroupMember.Info>>()
-    get cacheDir(){
-        const dir=path.resolve(this.directory,'../image')
-        if(!fs.existsSync(dir)) fs.mkdirSync(dir)
+    readonly memberList = new Map<number, Map<number, GroupMember.Info>>()
+    get cacheDir() {
+        const dir = path.resolve(this.directory, '../image')
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir)
         return dir
     }
-    pickFriend=Friend.from.bind(this)
-    pickGroup=Group.from.bind(this)
-    pickMember=GroupMember.from.bind(this)
+    pickFriend = Friend.from.bind(this)
+    pickGroup = Group.from.bind(this)
+    pickMember = GroupMember.from.bind(this)
 
     constructor(uin: number, conf?: Config) {
         const config = {
@@ -83,7 +83,7 @@ export class Client extends BaseClient {
             token = null;
         }
         super(uin, token?.Uid ?? "", config.platform);
-        this.sig.signApiAddr=config.signApiAddr||this.sig.signApiAddr
+        this.sig.signApiAddr = config.signApiAddr || this.sig.signApiAddr
         this.logger = log4js.getLogger(`[${this.deviceInfo.deviceName}:${uin}]`);
         (this.logger as log4js.Logger).level = config.logLevel;
         if (regenerate) this.logger.mark("创建了新的设备文件：" + deviceFile);
@@ -108,6 +108,7 @@ export class Client extends BaseClient {
 
         if (!this.config.autoServer) this.setRemoteServer("msfwifi.3g.qq.com", 8080);
     }
+    
     /** emit an event */
     em(name = "", data?: any) {
         data = Object.defineProperty(data || {}, "self_id", {
@@ -123,6 +124,7 @@ export class Client extends BaseClient {
             name = name.slice(0, i);
         }
     }
+
     async login(password?: string | Buffer) {
         if (password && password.length > 0) {
             let md5pass;
@@ -135,7 +137,7 @@ export class Client extends BaseClient {
         try {
             return await this.tokenLogin(Buffer.from(this.token.Session.TempPassword, "base64")); // EasyLogin
         }
-        catch(e) {
+        catch (e) {
             if (this.token.PasswordMd5 && this.token.Uid) { // 检测Uid的目的是确保之前登陆过
                 return await this.passwordLogin(Buffer.from(this.token.PasswordMd5, "hex"));
             }
@@ -152,18 +154,18 @@ export class Client extends BaseClient {
         return packet[4][3].toString();
     }
 
-    sendOidbSvcTrpcTcp(cmd: number, subCmd: number, buffer: Uint8Array, isUid = false,isAfter=false) {
+    sendOidbSvcTrpcTcp(cmd: number, subCmd: number, buffer: Uint8Array, isUid = false, isAfter = false) {
         const command = `OidbSvcTrpcTcp.0x${cmd.toString(16)}_${subCmd}`;
 
         const result = pb.encode({
             1: cmd,
             2: subCmd,
             4: buffer,
-            7:isAfter?{
-                1:undefined,
-                2:[],
-                3:this.appInfo.subAppId
-            }:null,
+            7: isAfter ? {
+                1: undefined,
+                2: [],
+                3: this.appInfo.subAppId
+            } : null,
             12: isUid,
         });
         return this.sendUni(command, result);
@@ -196,7 +198,7 @@ export interface Config {
     platform?: Platform
     /** 群聊和频道中过滤自己的消息(默认true) */
     ignoreSelf?: boolean
-    cacheMember?:boolean
+    cacheMember?: boolean
     /** 数据存储文件夹，需要可写权限，默认主模块下的data文件夹 */
     dataDirectory?: string
     /**
@@ -207,7 +209,7 @@ export interface Config {
     /** 自动选择最优服务器(默认true)，关闭后会一直使用`msfwifi.3g.qq.com:8080`进行连接 */
     autoServer?: boolean
     /** 签名API地址 */
-    signApiAddr?:string
+    signApiAddr?: string
 }
 
 export interface SavedToken {

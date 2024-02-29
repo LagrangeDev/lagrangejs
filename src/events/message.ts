@@ -39,9 +39,11 @@ export class TempMessageEvent extends TempMessage implements MessageEvent{
         super(pb);
         this.#c = c
     }
-    get group(){
+
+    get group() {
         return this.#c.pickGroup(this.group_id)
     }
+
     reply(content: Sendable, quote?: boolean): Promise<MessageRet> {
         return this.group.pickMember(this.user_id)!.sendMsg(content,quote?this:undefined)
     }
@@ -52,16 +54,20 @@ export class GroupMessageEvent extends GroupMessage implements MessageEvent{
         super(pb);
         this.#c = c
     }
+
     /** 群对象 */
-    get group(){
+    get group() {
         return this.#c.pickGroup(this.group_id)
     }
-    get member(){
+
+    get member() {
         return this.group.pickMember(this.user_id)
     }
-    recall(){
+
+    recall() {
         return this.group.recallMsg(this.seq)
     }
+
     reply(content: Sendable, quote?: boolean): Promise<MessageRet> {
         return this.group.sendMsg(content,quote?this:undefined)
     }

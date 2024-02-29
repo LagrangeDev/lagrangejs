@@ -2,11 +2,12 @@ export enum MusicPlatform {
     qq = "qq",
     netease = "163",
 }
-export interface MessageElemMap{
+
+export interface MessageElemMap {
     text: {
         text: string;
     };
-    at:{
+    at: {
         /** 在频道消息中该值为0 */
         qq: number | "all"
         /** 频道中的`tiny_id` */
@@ -14,22 +15,22 @@ export interface MessageElemMap{
         /** AT后跟的字符串，接收消息时有效 */
         text?: string
     }
-    face:{
+    face: {
         /** face为0~348，sface不明 */
         id: number
-        qlottie?:string
-        text?:string
+        qlottie?: string
+        text?: string
     }
-    sface:{
-        id:number
-        qlottie?:string
-        text?:string
+    sface: {
+        id: number
+        qlottie?: string
+        text?: string
     }
-    bface:{
-        file:string
-        text?:string
+    bface: {
+        file: string
+        text?: string
     }
-    image:{
+    image: {
         /**
          * @type {string} filepath such as "/tmp/1.jpg"
          * @type {Buffer} image buffer
@@ -48,7 +49,7 @@ export interface MessageElemMap{
         /** 是否显示下载原图按钮 */
         origin?: boolean
     }
-    record:{
+    record: {
         /**
          * support for raw silk and amr file
          * @type {string} filepath such as "/tmp/1.slk"
@@ -60,7 +61,7 @@ export interface MessageElemMap{
         size?: number
         seconds?: number
     }
-    video:{
+    video: {
         /**
          * need ffmpeg and ffprobe
          * @type {string} filepath such as "/tmp/1.mp4"
@@ -72,51 +73,51 @@ export interface MessageElemMap{
         size?: number
         seconds?: number
     }
-    json:{
-        res_id?:string
-        data: string|Record<string, any>;
+    json: {
+        res_id?: string
+        data: string | Record<string, any>;
     }
-    xml:{
+    xml: {
         data: string
         id?: number
     }
-    poke:{
+    poke: {
         /** 0~6 */
         id: number
         text?: string
     }
-    dice:{
+    dice: {
         /** 0~6 */
         id: number
     }
-    rps:{
+    rps: {
         id: number;
     }
-    music:{
+    music: {
         id: number;
         platform: MusicPlatform;
     }
-    mirai:{
-        data:string
+    mirai: {
+        data: string
     }
-    file:{
+    file: {
         name: string
         fid: string
         md5: string
         size: number
         duration: number
     }
-    reply:{
-        id:string
+    reply: {
+        id: string
     }
-    forward:{
+    forward: {
         m_resid: string;
-        m_fileName:string
-        message:never
+        m_fileName: string
+        message: never
     } | {
         m_resid?: never;
-        m_fileName?:never
-        message: Forwardable|Forwardable[];
+        m_fileName?: never
+        message: Forwardable | Forwardable[];
     }
 }
 
@@ -135,7 +136,7 @@ export interface Quotable {
 /** 可转发的消息 */
 export interface Forwardable {
     user_id: number
-    group_id?:number
+    group_id?: number
     message: Sendable,
     nickname?: string,
     time?: number,
@@ -148,7 +149,7 @@ export type MessageElem<T extends MessageElemType = MessageElemType> = {
 // 可以发送的消息类型
 export type TextElem = MessageElem<"text">;
 export type AtElem = MessageElem<"at">;
-export type FaceElem = MessageElem<"face"|'sface'>;
+export type FaceElem = MessageElem<"face" | 'sface'>;
 export type BFaceElem = MessageElem<'bface'>
 export type ImageElem = MessageElem<"image">;
 export type VideoElem = MessageElem<"video">;
@@ -178,16 +179,16 @@ export type Sendable =
     | RepeatableCombineElem
     | RepeatableCombineElem[] // 可重复组合的消息元素
     | WithReply<
-    | BFaceElem // 原创表情消息元素
-    | ForwardElem // 转发消息元素
-    | PokeElem // 戳一戳消息元素
-    | DiceElem // 掷骰子消息元素
-    | VideoElem // 视频消息元素
-    | RecordElem // 语音消息元素
-    | FileElem // 文件消息元素
-    | XmlElem // Xml消息元素
-    | MusicElem // 音乐消息元素
-    // | AppElem // 应用消息元素
-    | JsonElem // Json消息元素
-    | RpsElem // 猜拳消息元素
->; // 带回复的消息元素
+        | BFaceElem // 原创表情消息元素
+        | ForwardElem // 转发消息元素
+        | PokeElem // 戳一戳消息元素
+        | DiceElem // 掷骰子消息元素
+        | VideoElem // 视频消息元素
+        | RecordElem // 语音消息元素
+        | FileElem // 文件消息元素
+        | XmlElem // Xml消息元素
+        | MusicElem // 音乐消息元素
+        // | AppElem // 应用消息元素
+        | JsonElem // Json消息元素
+        | RpsElem // 猜拳消息元素
+    >; // 带回复的消息元素

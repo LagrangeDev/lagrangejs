@@ -1,11 +1,11 @@
 import { EventEmitter } from 'events';
 import { randomBytes } from "crypto";
 import { Readable } from "stream";
-import {aesGcmDecrypt, aesGcmEncrypt, BUF0, BUF16, hide, lock, md5, sha256, timestamp, trace, unzip} from "./constants";
+import { aesGcmDecrypt, aesGcmEncrypt, BUF0, BUF16, hide, lock, md5, sha256, timestamp, trace, unzip } from "./constants";
 import { AppInfo, DeviceInfo, generateDeviceInfo, getAppInfo, Platform } from "./device";
-import {Encodable} from "./protobuf";
-import {getRawTlv} from "./tlv";
-import {LoginErrorCode} from "../errors";
+import { Encodable } from "./protobuf";
+import { getRawTlv } from "./tlv";
+import { LoginErrorCode } from "../errors";
 
 import Network from "./network";
 import Ecdh from "./ecdh";
@@ -14,7 +14,7 @@ import Writer from "./writer";
 import * as pb from "./protobuf";
 import * as tea from "./tea";
 import * as tlv from "./tlv";
-import {getSign} from "./sign";
+import { getSign } from "./sign";
 
 
 const FN_NEXT_SEQ = Symbol("FN_NEXT_SEQ");
@@ -110,7 +110,7 @@ export class BaseClient extends EventEmitter {
         d2: BUF0,
         d2Key: BUF16,
         qrSig: BUF0,
-        signApiAddr:'http://127.0.0.1:7458/api/sign',
+        signApiAddr: 'http://127.0.0.1:7458/api/sign',
         exchangeKey: BUF0,
         keySig: BUF0,
         cookies: "",
@@ -211,7 +211,7 @@ export class BaseClient extends EventEmitter {
 
         this[FN_SEND](packet).then(payload => {
             payload = tea.decrypt(payload.slice(16, -1), this[ECDH192].shareKey);
-            const stream = Readable.from(payload, {objectMode: false});
+            const stream = Readable.from(payload, { objectMode: false });
             stream.read(54);
             const retcode = stream.read(1)[0];
             const qrSig = stream.read(stream.read(2).readUInt16BE());
@@ -230,7 +230,7 @@ export class BaseClient extends EventEmitter {
 
     async queryQrcodeResult() {
         let retcode = -1, uin, t106, t16a, t318, tgtgt
-        if (!this.sig.qrSig.length)  return { retcode, uin, t106, t16a, t318, tgtgt }
+        if (!this.sig.qrSig.length) return { retcode, uin, t106, t16a, t318, tgtgt }
 
         const body = new Writer()
             .writeU16(this.sig.qrSig.length).writeBytes(this.sig.qrSig)
@@ -479,7 +479,7 @@ async function register(this: BaseClient) {
 
             }, this.interval * 1000);
 
-            this[SSO_HEARTBEAT] = setInterval(async() => { // trpc
+            this[SSO_HEARTBEAT] = setInterval(async () => { // trpc
                 const ssoHeartBeat = pb.encode({ 1: 1 });
                 await this.sendUni("trpc.qq_new_tech.status_svc.StatusService.SsoHeartBeat", ssoHeartBeat);
             }, this.ssoInterval * 1000);
@@ -570,7 +570,7 @@ async function parseSso(this: BaseClient, buf: Buffer) {
 }
 
 function readTlv(r: Readable) {
-    const t: { [tag: number]: Buffer } = { };
+    const t: { [tag: number]: Buffer } = {};
     while (r.readableLength > 2) {
         const k = r.read(2).readUInt16BE() as number;
         t[k] = r.read(r.read(2).readUInt16BE());
@@ -596,7 +596,7 @@ async function buildUniPacket(this: BaseClient, cmd: string, body: Uint8Array, s
         });
     }
     else {
-        head  = pb.encode({
+        head = pb.encode({
             15: trace(),
             16: this.uid,
         });
@@ -750,7 +750,7 @@ function decodeNTLoginResponse(this: BaseClient, encrypted: Buffer): LoginErrorC
 }
 
 function decodeT119(this: BaseClient, t119: Buffer) {
-    const r = Readable.from(tea.decrypt(t119, this.sig.tgtgt), {objectMode: false});
+    const r = Readable.from(tea.decrypt(t119, this.sig.tgtgt), { objectMode: false });
     r.read(2);
     const t = readTlv(r);
     this.sig.tgt = t[0x10a] || this.sig.tgt;
@@ -769,14 +769,14 @@ function decodeT119(this: BaseClient, t119: Buffer) {
 
 async function decodeLoginResponse(this: BaseClient, payload: Buffer) {
     payload = tea.decrypt(payload.slice(16, payload.length - 1), this[ECDH192].shareKey);
-    const r = Readable.from(payload, {objectMode: false});
+    const r = Readable.from(payload, { objectMode: false });
     r.read(2);
     const type = r.read(1).readUInt8() as number;
     r.read(2);
     const t = readTlv(r);
 
     if (type === 0) {
-        const {token, nickname, gender, age} = decodeT119.call(this, t[0x119]);
+        const { token, nickname, gender, age } = decodeT119.call(this, t[0x119]);
         await register.call(this).then(() => {
             if (this[IS_ONLINE]) {
                 this.emit("internal.online", token, nickname, gender, age);
@@ -786,7 +786,7 @@ async function decodeLoginResponse(this: BaseClient, payload: Buffer) {
     }
 
     if (t[0x149]) {
-        const stream = Readable.from(t[0x149], {objectMode: false});
+        const stream = Readable.from(t[0x149], { objectMode: false });
         stream.read(2);
         const title = stream.read(stream.read(2).readUInt16BE()).toString();
         const content = stream.read(stream.read(2).readUInt16BE()).toString();
@@ -794,7 +794,7 @@ async function decodeLoginResponse(this: BaseClient, payload: Buffer) {
     }
 
     if (t[0x146]) {
-        const stream = Readable.from(t[0x146], {objectMode: false});
+        const stream = Readable.from(t[0x146], { objectMode: false });
         const version = stream.read(4);
         const title = stream.read(stream.read(2).readUInt16BE()).toString();
         const content = stream.read(stream.read(2).readUInt16BE()).toString();

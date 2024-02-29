@@ -31,6 +31,7 @@ export abstract class Contactable {
             15: file ? {1: this.uin, 2: 4, 8: this.gid} : null
         }
     }
+
     protected async _preprocess(content: Sendable, source?: Quotable) {
         try {
             if (!Array.isArray(content)) content = [content] as any;
@@ -137,6 +138,7 @@ export abstract class Contactable {
         const buf = await this._downloadMultiMsg(String(resid))
         return pb.decode(buf)[2]?.[2]?.[1]?.map((proto:pb.Proto)=>new ForwardMessage(proto))||[]
     }
+
     async uploadImage(img:Image){
         // todo: uploadImg
     }
@@ -162,14 +164,16 @@ export abstract class Contactable {
     private async _downloadMultiMsg(resid: string) {
         const body = pb.encode({
             1:{
-                1:{1:this.uid},
-                2:resid,
-                3:true
+                1: {
+                    1:this.uid
+                },
+                2: resid,
+                3: true
             },
             15:{
                 1:2,2:0,3:0,4:0
             }
-        })
+        });
         const payload = await this.c.sendUni("trpc.group.long_msg_interface.MsgService.SsoRecvLongMsg", body)
 
         return unzip(pb.decode(payload)[1][4].toBuffer())

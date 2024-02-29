@@ -1,4 +1,4 @@
-import {BaseClient} from "./base-client";
+import { BaseClient } from "./base-client";
 import axios from "axios";
 
 export interface SignResult {
