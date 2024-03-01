@@ -335,7 +335,7 @@ export abstract class Contactable {
             },
             3: proto3,
             4: seq,
-            5: this.gid?randomBytes(4).readUInt32BE():undefined,
+            5: this.gid ? randomBytes(4).readUInt32BE():undefined,
             12: this.gid ? null : {1: timestamp()}
         });
         const payload = await this.c.sendUni("MessageSvc.PbSendMsg", body);
