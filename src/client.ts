@@ -108,7 +108,7 @@ export class Client extends BaseClient {
 
         if (!this.config.autoServer) this.setRemoteServer("msfwifi.3g.qq.com", 8080);
     }
-    
+
     /** emit an event */
     em(name = "", data?: any) {
         data = Object.defineProperty(data || {}, "self_id", {
@@ -153,7 +153,6 @@ export class Client extends BaseClient {
 
         return packet[4][3].toString();
     }
-
     sendOidbSvcTrpcTcp(cmd: number, subCmd: number, buffer: Uint8Array, isUid = false, isAfter = false) {
         const command = `OidbSvcTrpcTcp.0x${cmd.toString(16)}_${subCmd}`;
 
@@ -162,7 +161,7 @@ export class Client extends BaseClient {
             2: subCmd,
             4: buffer,
             7: isAfter ? {
-                1: undefined,
+                1: 0,
                 2: [],
                 3: this.appInfo.subAppId
             } : null,

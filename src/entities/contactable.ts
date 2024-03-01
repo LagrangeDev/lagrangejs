@@ -1,6 +1,6 @@
 import {gzip, lock, randomInt, timestamp, unzip} from "../core/constants";
 import {Client} from "../client";
-import {Forwardable, JsonElem, Quotable, Sendable} from "../message/elements";
+import {Forwardable, ImageElem, JsonElem, Quotable, Sendable} from "../message/elements";
 import {drop, ErrorCode} from "../errors";
 import {Converter} from "../message/converter";
 import * as pb from "../core/protobuf/index";
@@ -9,14 +9,19 @@ import {EXT, Image} from "../message/image";
 import {escapeXml, uuid} from "../common";
 import {ForwardMessage} from "../message/message";
 import {LogLevel} from "../core";
+import path from "path";
+import {CmdID, highwayUpload} from "../core/highway";
 
 export abstract class Contactable {
     public uin?: number
     public uid?: string
     public gid?: number
-
+    // 对方账号，可能是群号也可能是QQ号
+    get target() {
+        return this.uin || this.gid || this.c.uin
+    }
     get dm() {
-        return !!this.uid
+        return !!this.uin
     }
 
     protected constructor(readonly c: Client) {
@@ -75,7 +80,9 @@ export abstract class Contactable {
                         4: randomInt(100000000, 2147483647), // msg id
                         5: randomInt(1000000, 9999999), // seq
                         6: forwardItem.time || timestamp(), // time
-                        7: 1, 8: 0, 9: 0,
+                        7: 1,
+                        8: 0,
+                        9: 0,
                         15: { // forwarder
                             3: forwardItem.group_id ? null : 2,
                             4: randomBytes(32).toString('base64'),
@@ -138,42 +145,110 @@ export abstract class Contactable {
         const buf = await this._downloadMultiMsg(String(resid))
         return pb.decode(buf)[2]?.[2]?.[1]?.map((proto:pb.Proto)=>new ForwardMessage(proto))||[]
     }
+    /** 上传一批图片以备发送(无数量限制)，理论上传一次所有群和好友都能发 */
+    async uploadImages(imgs: Image[] | ImageElem[]) {
+        this.c.logger.debug(`开始图片任务，共有${imgs.length}张图片`)
+        const tasks: Promise<void>[] = []
+        for (let i = 0; i < imgs.length; i++) {
+            if (!(imgs[i] instanceof Image))
+                imgs[i] = new Image(imgs[i] as ImageElem, this.dm, path.join(this.c.directory, "../image"))
+            tasks.push((imgs[i] as Image).task)
+        }
+        const res1 = await Promise.allSettled(tasks) as PromiseRejectedResult[]
+        for (let i = 0; i < res1.length; i++) {
+            if (res1[i].status === "rejected")
+                this.c.logger.warn(`图片${i + 1}失败, reason: ` + res1[i].reason?.message)
+        }
+        let n = 0
+        while (imgs.length > n) {
+            let rsp = await (this.dm ? this._offPicUp : this._groupPicUp).call(this, imgs.slice(n, n + 20) as Image[])
+            !Array.isArray(rsp) && (rsp = [rsp])
+            const tasks: Promise<any>[] = []
+            for (let i = n; i < imgs.length; ++i) {
+                if (i >= n + 20) break
+                tasks.push(this._uploadImage(imgs[i] as Image, rsp[i % 20]))
+            }
+            const res2 = await Promise.allSettled(tasks) as PromiseRejectedResult[]
+            for (let i = 0; i < res2.length; i++) {
+                if (res2[i].status === "rejected") {
+                    res1[n + i] = res2[i]
+                    this.c.logger.warn(`图片${n + i + 1}上传失败, reason: ` + res2[i].reason?.message)
+                }
+            }
+            n += 20
+        }
+        this.c.logger.debug(`图片任务结束`)
+        return res1
+    }
 
-    async uploadImage(img:Image){
-        // todo: uploadImg
+    private async _uploadImage(img: Image, rsp: pb.Proto) {
+        const j = this.dm ? 1 : 0
+        if (rsp[2 + j] !== 0)
+            throw new Error(String(rsp[3 + j]))
+        img.fid = rsp[9 + j].toBuffer?.() || rsp[9 + j]
+        if (rsp[4 + j]) {
+            img.deleteTmpFile()
+            return
+        }
+        if (!img.readable) {
+            img.deleteCacheFile()
+            return
+        }
+        const ip = rsp[6 + j]?.[0] || rsp[6 + j]
+        const port = rsp[7 + j]?.[0] || rsp[7 + j]
+        return highwayUpload.call(
+            this.c,
+            img.readable,
+            {
+                cmdid: j ? CmdID.DmImage : CmdID.GroupImage,
+                md5: img.md5,
+                size: img.size,
+                ticket: rsp[8 + j].toBuffer()
+            },
+            ip, port
+        ).finally(img.deleteTmpFile.bind(img))
     }
 
     /** 上传合并转发 */
     private async _uploadMultiMsg(compressed: Buffer): Promise<string> {
-        const info = pb.encode({
+        const body = pb.encode({
             2: {
-                1: 3,
-                2: {2: String(this.gid) || this.uid},
-                3: this.gid,
+                1: this.dm ? 1 : 3,
+                2: {
+                    2: this.target
+                },
                 4: compressed
             },
             15: {
-                1: 4, 2: 1, 3: 3, 4: 0
+                1: 4,
+                2: 2,
+                3: 9,
+                4: 0
             }
         })
-        const result = await this.c.sendUni('trpc.group.long_msg_interface.MsgService.SsoSendLongMsg', info)
-        const proto=pb.decode(result)
-        return proto[2][3].toString()
+        const payload = await this.c.sendUni("trpc.group.long_msg_interface.MsgService.SsoSendLongMsg", body)
+        const rsp = pb.decode(payload)?.[2]
+        if (!rsp?.[3])
+            drop(rsp?.[1], rsp?.[2]?.toString() || "unknown trpc.group.long_msg_interface.MsgService.SsoSendLongMsg error")
+        return rsp[3].toString() as string
     }
     /** 下载合并转发 */
     private async _downloadMultiMsg(resid: string) {
         const body = pb.encode({
-            1:{
+            1: {
                 1: {
-                    1:this.uid
+                    2: this.target
                 },
                 2: resid,
-                3: true
+                3: this.dm?1:3
             },
-            15:{
-                1:2,2:0,3:0,4:0
+            15: {
+                1: 2,
+                2: 2,
+                3: 9,
+                4: 0
             }
-        });
+        })
         const payload = await this.c.sendUni("trpc.group.long_msg_interface.MsgService.SsoRecvLongMsg", body)
 
         return unzip(pb.decode(payload)[1][4].toBuffer())

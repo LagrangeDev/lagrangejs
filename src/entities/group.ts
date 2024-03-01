@@ -1,7 +1,7 @@
 import { Contactable } from "./contactable";
 import { Client } from "../client";
 import { lock } from "../core/constants";
-import { Quotable, Sendable } from "../message/elements";
+import {Quotable, RecordElem, Sendable} from "../message/elements";
 import { MessageRet } from "../events/message";
 import { drop } from "../errors";
 import * as pb from "../core/protobuf"
@@ -70,6 +70,20 @@ export class Group extends Contactable {
         return !rsp[3];
     }
 
+    /**
+     * 上传语音
+     * @param elem
+     */
+    async uploadRecord(elem:RecordElem){
+
+    }
+
+    /**
+     * 解析语音内容
+     */
+    async downloadRecord(){
+
+    }
     async remark(targetRemark: string) {
         const body = pb.encode({
             1: {

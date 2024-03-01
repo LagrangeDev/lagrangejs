@@ -26,6 +26,7 @@ export interface ConverterExt {
 
 export class Converter {
     is_chain = true
+    imgs:Image[]=[]
     elems: pb.Encodable[] = []
     /** 用于最终发送 */
     rich: pb.Encodable = { 2: this.elems, 4: null }
@@ -42,9 +43,11 @@ export class Converter {
         }
         else if (Array.isArray(this.content)) {
             await Promise.allSettled(this.content.map(item => this._convert(item, contactable)))
+            await contactable.uploadImages(this.imgs)
         }
         else {
             await this._convert(this.content, contactable);
+            await contactable.uploadImages(this.imgs)
         }
 
         if (!this.elems.length && !this.rich[4]) {
@@ -291,7 +294,7 @@ export class Converter {
     private async image(elem: ImageElem, contactable: Contactable) {
         const img = new Image(elem, contactable.dm, contactable.c.cacheDir)
         const proto = await img.getProto()
-        await contactable.uploadImage(img)
+        this.imgs.push(img)
         this.elems.push(
             contactable.dm ? { 4: proto } : { 8: proto }
         )
