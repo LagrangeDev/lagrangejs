@@ -1,16 +1,16 @@
-import {gzip, lock, randomInt, timestamp, unzip} from "../core/constants";
-import {Client} from "../client";
-import {Forwardable, ImageElem, JsonElem, Quotable, Sendable} from "../message/elements";
-import {drop, ErrorCode} from "../errors";
-import {Converter} from "../message/converter";
+import { gzip, lock, randomInt, timestamp, unzip } from "../core/constants";
+import { Client } from "../client";
+import { Forwardable, ImageElem, JsonElem, Quotable, Sendable } from "../message/elements";
+import { drop, ErrorCode } from "../errors";
+import { Converter } from "../message/converter";
 import * as pb from "../core/protobuf/index";
-import {randomBytes} from "crypto";
-import {EXT, Image} from "../message/image";
-import {escapeXml, uuid} from "../common";
-import {ForwardMessage} from "../message/message";
-import {LogLevel} from "../core";
+import { randomBytes } from "crypto";
+import { EXT, Image } from "../message/image";
+import { escapeXml, uuid } from "../common";
+import { ForwardMessage } from "../message/message";
+import { LogLevel } from "../core";
 import path from "path";
-import {CmdID, highwayUpload} from "../core/highway";
+import { CmdID, highwayUpload } from "../core/highway";
 
 export abstract class Contactable {
     public uin?: number
@@ -30,10 +30,10 @@ export abstract class Contactable {
 
     private _getRouting(file = false): pb.Encodable {
         return {
-            1: this.gid ? null : {1: this.uin, 2: this.uid},// 私聊
-            2: this.gid && !this.uin ? {1: this.gid} : null, // 群聊
-            3: this.gid && this.uin ? {1: this.gid, 2: this.uin} : null, // 群临时会话
-            15: file ? {1: this.uin, 2: 4, 8: this.gid} : null
+            1: this.gid ? null : { 1: this.uin, 2: this.uid },// 私聊
+            2: this.gid && !this.uin ? { 1: this.gid } : null, // 群聊
+            3: this.gid && this.uin ? { 1: this.gid, 2: this.uin } : null, // 群临时会话
+            15: file ? { 1: this.uin, 2: 4, 8: this.gid } : null
         }
     }
 
@@ -44,7 +44,7 @@ export abstract class Contactable {
             const converter = new Converter(content);
             await converter.convert(this)
             if (source)
-                await converter.quote(source,this)
+                await converter.quote(source, this)
             return converter;
         }
         catch (e: any) {
@@ -57,21 +57,21 @@ export abstract class Contactable {
      * 支持4层套娃转发（PC仅显示3层）
      */
     async makeForwardMsg(msglist: Forwardable[] | Forwardable): Promise<JsonElem> {
-        const _makeFake = async (forwardItem: Forwardable):Promise<[Uint8Array,string|undefined,string]> => {
+        const _makeFake = async (forwardItem: Forwardable): Promise<[Uint8Array, string | undefined, string]> => {
             const converter = await new Converter(forwardItem.message).convert(this)
             return [
                 pb.encode({
                     1: { // res head
-                        2:this.c.uid,
-                        6:forwardItem.group_id?this.c.memberList.get(forwardItem.group_id!)?.get(forwardItem.user_id)?.uid:
+                        2: this.c.uid,
+                        6: forwardItem.group_id ? this.c.memberList.get(forwardItem.group_id!)?.get(forwardItem.user_id)?.uid :
                             this.c.friendList.get(forwardItem.user_id)?.uid,
-                        7:{
-                            6:forwardItem.nickname
+                        7: {
+                            6: forwardItem.nickname
                         },
-                        8:forwardItem.group_id?{
-                            1:forwardItem.group_id,
-                            4:this.c.memberList.get(forwardItem.group_id!)?.get(forwardItem.user_id)?.card||''
-                        }:null
+                        8: forwardItem.group_id ? {
+                            1: forwardItem.group_id,
+                            4: this.c.memberList.get(forwardItem.group_id!)?.get(forwardItem.user_id)?.card || ''
+                        } : null
                     },
                     2: { // res content
                         1: forwardItem.group_id ? 82 : 529, // type
@@ -93,32 +93,32 @@ export abstract class Contactable {
                         1: converter.rich
                     }
                 }),
-                forwardItem.nickname||'',
+                forwardItem.nickname || '',
                 converter.brief
             ]
         }
-        const forwardList=Array.isArray(msglist)?msglist:[msglist]
-        const nodes = await Promise.all(forwardList.map(_makeFake)).catch(e=>{
+        const forwardList = Array.isArray(msglist) ? msglist : [msglist]
+        const nodes = await Promise.all(forwardList.map(_makeFake)).catch(e => {
             this.c.emit('internal.verbose', e, LogLevel.Error)
             throw e
         })
-        const preview=nodes.slice(0,4).map(([_,nickname='',brief])=>{
+        const preview = nodes.slice(0, 4).map(([_, nickname = '', brief]) => {
             return {
-                text:`${escapeXml(nickname)}: ${escapeXml(brief.slice(0, 50))}`
+                text: `${escapeXml(nickname)}: ${escapeXml(brief.slice(0, 50))}`
             }
         })
         const compressed = await gzip(pb.encode({
             2: {
                 1: 'MultiMsg',
                 2: {
-                    1: nodes.map(([node])=>node)
+                    1: nodes.map(([node]) => node)
                 }
             }
         }))
         const resid = await this._uploadMultiMsg(compressed)
         const json = {
             "app": "com.tencent.multimsg",
-            "config": {"autosize": 1, "forward": 1, "round": 1, "type": "normal", "width": 300},
+            "config": { "autosize": 1, "forward": 1, "round": 1, "type": "normal", "width": 300 },
             "desc": "[聊天记录]",
             "extra": "",
             "meta": {
@@ -141,9 +141,9 @@ export abstract class Contactable {
         };
     }
     /** 下载并解析合并转发 */
-    async getForwardMsg(resid: string, fileName: string = "MultiMsg"):Promise<ForwardMessage[]> {
+    async getForwardMsg(resid: string, fileName: string = "MultiMsg"): Promise<ForwardMessage[]> {
         const buf = await this._downloadMultiMsg(String(resid))
-        return pb.decode(buf)[2]?.[2]?.[1]?.map((proto:pb.Proto)=>new ForwardMessage(proto))||[]
+        return pb.decode(buf)[2]?.[2]?.[1]?.map((proto: pb.Proto) => new ForwardMessage(proto)) || []
     }
     /** 上传一批图片以备发送(无数量限制)，理论上传一次所有群和好友都能发 */
     async uploadImages(imgs: Image[] | ImageElem[]) {
@@ -240,7 +240,7 @@ export abstract class Contactable {
                     2: this.target
                 },
                 2: resid,
-                3: this.dm?1:3
+                3: this.dm ? 1 : 3
             },
             15: {
                 1: 2,
@@ -262,7 +262,7 @@ export abstract class Contactable {
                 3: 1,
                 4: img.md5,
                 5: img.size,
-                6: `${img.md5.toString("hex")}.${EXT[img.type]||'jpg'}`,
+                6: `${img.md5.toString("hex")}.${EXT[img.type] || 'jpg'}`,
                 7: 2,
                 8: 8,
                 9: 0,
@@ -275,7 +275,7 @@ export abstract class Contactable {
                 16: img.type,
                 17: this.c.appInfo.currentVersion,
                 22: 0,
-                25:this.uid,
+                25: this.uid,
             })
         }
         const body = pb.encode({
@@ -297,7 +297,7 @@ export abstract class Contactable {
                 3: 1,
                 4: img.md5,
                 5: img.size,
-                6: `${img.md5.toString("hex")}.${EXT[img.type]||'jpg'}`,
+                6: `${img.md5.toString("hex")}.${EXT[img.type] || 'jpg'}`,
                 7: 2,
                 8: 8,
                 9: 212, //bu
@@ -335,8 +335,8 @@ export abstract class Contactable {
             },
             3: proto3,
             4: seq,
-            5: this.gid ? randomBytes(4).readUInt32BE():undefined,
-            12: this.gid ? null : {1: timestamp()}
+            5: this.gid ? randomBytes(4).readUInt32BE() : undefined,
+            12: this.gid ? null : { 1: timestamp() }
         });
         const payload = await this.c.sendUni("MessageSvc.PbSendMsg", body);
         return pb.decode(payload)

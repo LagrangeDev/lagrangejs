@@ -1,6 +1,7 @@
 import { Worker, MessageChannel, isMainThread, parentPort } from 'worker_threads';
 import { decode as silkDecode, encode as silkEncode, getDuration as silkGetDuration, decodeResult, encodeResult } from 'silk-wasm';
 import fs from 'fs';
+
 if (!isMainThread && parentPort) {
     parentPort.once('message', (val) => {
         const data = val.data;
