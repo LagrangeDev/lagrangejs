@@ -1,12 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as pb from '../core/protobuf';
+import * as pb from '@/core/protobuf';
 import { PNG } from 'pngjs';
-import { Client } from '../client';
+import { Client } from '@/client';
 import { handleGroupMsg, handlePrivateMsg, handleTempMsg } from './msgpush';
 import { loadFriendList, loadGroupList } from './internal';
-import { Group } from '../entities/group';
-import { GroupAdminChangeNotice } from '../events/notice';
+import { Group } from '@/entities/group';
+import { GroupAdminChangeNotice } from '@/events/notice';
 
 async function msgPushListener(this: Client, payload: Buffer) {
   const proto = pb.decode(payload);

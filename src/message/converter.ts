@@ -19,8 +19,8 @@ import {
 } from './elements';
 import { FACE_OLD_BUF, facemap } from './face';
 import { deflateSync } from 'zlib';
-import { Contactable } from '../entities/contactable';
-import { escapeXml, uuid } from '../common';
+import { Contactable } from '@/entities/contactable';
+import { escapeXml, uuid } from '@/common';
 import { rand2uuid } from './message';
 
 const BUF1 = Buffer.from([1]);

@@ -1,16 +1,16 @@
-import { gzip, lock, randomInt, timestamp, unzip } from '../core/constants';
-import { Client } from '../client';
-import { Forwardable, ImageElem, JsonElem, Quotable, Sendable } from '../message/elements';
-import { drop, ErrorCode } from '../errors';
-import { Converter } from '../message/converter';
+import { gzip, lock, randomInt, timestamp, unzip } from '@/core/constants';
+import { Client } from '@/client';
+import { Forwardable, ImageElem, JsonElem, Quotable, Sendable } from '@/message/elements';
+import { drop, ErrorCode } from '@/errors';
+import { Converter } from '@/message/converter';
 import * as pb from '../core/protobuf/index';
 import { randomBytes } from 'crypto';
-import { EXT, Image } from '../message/image';
-import { escapeXml, uuid } from '../common';
-import { ForwardMessage } from '../message/message';
-import { LogLevel } from '../core';
+import { EXT, Image } from '@/message/image';
+import { escapeXml, uuid } from '@/common';
+import { ForwardMessage } from '@/message/message';
+import { LogLevel } from '@/core';
 import path from 'path';
-import { CmdID, highwayUpload } from '../core/highway';
+import { CmdID, highwayUpload } from '@/core/highway';
 
 export abstract class Contactable {
   public uin?: number;
