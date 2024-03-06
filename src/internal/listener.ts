@@ -98,13 +98,12 @@ function logQrcode(img: Buffer) {
 
 async function onlineListener(this: Client, token: Buffer, nickname: string, gender: number, age: number) {
   this.logger.mark(`Welcome, ${nickname} ! 正在加载资源...`);
-  await Promise.allSettled([
-    loadFriendList.call(this), // 好友列表
-    loadGroupList.call(this), // 群列表
-  ]);
+  await loadFriendList.call(this) // 好友列表
+  await loadGroupList.call(this) // 群列表
+
   if (this.config.cacheMember) {
     for (const [gid] of this.groupList) {
-      Group.fetchMember.call(this, gid);
+      await Group.fetchMember.call(this, gid);
     }
   }
   this.logger.mark(`加载了${this.friendList.size}个好友，${this.groupList.size}个群`);

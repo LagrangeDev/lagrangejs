@@ -66,6 +66,7 @@ export class Client extends BaseClient {
       platform: Platform.Linux,
       autoServer: true,
       ignoreSelf: true,
+      cacheMember: true,
       reConnInterval: 5,
       dataDirectory: path.join(process.cwd(), 'data'),
       ...conf,
