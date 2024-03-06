@@ -35,7 +35,7 @@ export class User extends Contactable {
 
     const response = await this.c.sendOidbSvcTrpcTcp(0x7e5, 104, request);
     const packet = pb.decode(response);
-    return !packet[3];
+    return { code: packet[3], msg: packet[5].toString() };
   }
 }
 export namespace User {
