@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { randomBytes } from 'crypto';
 import { Readable } from 'stream';
 import {
@@ -772,7 +772,7 @@ function decodeNTLoginResponse(this: BaseClient, encrypted: Buffer): LoginErrorC
       }
     });
   } else {
-    this.sig.unusualSig = inner[2][3][2].toBuffer();
+    this.sig.unusualSig = inner[2][3]?.[2]?.toBuffer();
     this.sig.cookies = inner[1][5][1].toString();
   }
 

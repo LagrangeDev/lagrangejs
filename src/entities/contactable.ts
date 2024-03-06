@@ -16,6 +16,7 @@ export abstract class Contactable {
   public uin?: number;
   public uid?: string;
   public gid?: number;
+  public info?: any;
   // 对方账号，可能是群号也可能是QQ号
   get target() {
     return this.uin || this.gid || this.c.uin;

@@ -9,7 +9,8 @@ const friendCache: WeakMap<Friend.Info, Friend> = new WeakMap<Friend.Info, Frien
 export class Friend extends User {
   protected constructor(c: Client, uin: number) {
     super(c, uin);
-    this.uid = c.friendList.get(uin)?.uid;
+    this.info = c.friendList.get(uin);
+    this.uid = this.info?.uid;
     lock(this, 'uid');
     hide(this, '_info');
   }
@@ -17,8 +18,10 @@ export class Friend extends User {
     const friendInfo = this.friendList.get(uid);
     if (!friendInfo && strict) throw new Error(`Friend(${uid}) not found`);
     let friend = friendCache.get(friendInfo!);
-    if (!friend) return (friend = new Friend(this, uid));
-    if (friendInfo) friendCache.set(friendInfo, (friend = new Friend(this, uid)));
+    if (!friend) {
+      friend = new Friend(this, uid);
+      if (friendInfo) friendCache.set(friendInfo, friend);
+    }
     return friend;
   }
   /**

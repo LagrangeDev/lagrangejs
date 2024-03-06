@@ -14,7 +14,8 @@ export class GroupMember extends User {
     uin: number,
   ) {
     super(c, uin);
-    this.uid = c.memberList.get(gid)?.get(uin)?.uid;
+    this.info = c.memberList.get(gid)?.get(uin);
+    this.uid = this.info?.uid;
     lock(this, 'uid');
     lock(this, 'gid');
   }
@@ -25,8 +26,10 @@ export class GroupMember extends User {
     const memberInfo = this.memberList.get(gid)?.get(uid);
     if (!memberInfo && strict) throw new Error(`Group(${gid}) not exist or Member(${uid}) not found`);
     let member = memberCache.get(memberInfo!);
-    if (!member) member = new GroupMember(this, gid, uid);
-    if (memberInfo) memberCache.set(memberInfo, member);
+    if (!member) {
+      member = new GroupMember(this, gid, uid);
+      if (memberInfo) memberCache.set(memberInfo, member);
+    }
     return member;
   }
   async mute(duration: number) {
