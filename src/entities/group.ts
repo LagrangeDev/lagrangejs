@@ -20,8 +20,10 @@ export class Group extends Contactable {
     const groupInfo = this.groupList.get(gid);
     if (!groupInfo && strict) throw new Error(`Group(${gid}) not found`);
     let group = groupCacheMap.get(groupInfo!);
-    if (!group) group = new Group(this, gid);
-    if (groupInfo) groupCacheMap.set(groupInfo, group);
+    if (!group) {
+      group = new Group(this, gid);
+      if (groupInfo) groupCacheMap.set(groupInfo, group);
+    }
     return group;
   }
   pickMember = GroupMember.from.bind(this.c, this.gid);
@@ -35,6 +37,7 @@ export class Group extends Contactable {
     public readonly gid: number,
   ) {
     super(c);
+    this.info = c.groupList.get(gid);
     lock(this, 'gid');
     this.fileSystem = new FileSystem(this);
   }
