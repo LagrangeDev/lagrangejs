@@ -122,7 +122,7 @@ function qrcodeListener(this: Client, image: Buffer) {
 }
 
 function sliderListener(this: Client, url: string) {
-    this.logger.mark('收到滑动验证码，请访问以下地址完成滑动，并从网络响应中取出ticket输入：' + url);
+    this.logger.mark('收到滑动验证码，请访问以下地址完成滑动，并从网络响应中取出ticket和randStr输入：' + url);
     this.em('system.login.slider', { url });
 }
 

@@ -15,17 +15,16 @@ import {
     unzip,
 } from './constants';
 import { AppInfo, DeviceInfo, generateDeviceInfo, getAppInfo, Platform } from './device';
+import * as pb from './protobuf';
 import { Encodable } from './protobuf';
+import * as tlv from './tlv';
 import { getRawTlv } from './tlv';
 import { LoginErrorCode } from '../errors';
 
 import Network from './network';
 import Ecdh from './ecdh';
 import Writer from './writer';
-
-import * as pb from './protobuf';
 import * as tea from './tea';
-import * as tlv from './tlv';
 import { getSign } from './sign';
 
 const FN_NEXT_SEQ = Symbol('FN_NEXT_SEQ');
@@ -126,15 +125,24 @@ export class BaseClient extends EventEmitter {
     readonly deviceInfo: DeviceInfo;
     readonly sig = {
         seq: randomBytes(4).readUInt32BE() & 0xfff,
+
         tgtgt: BUF0,
         tgt: BUF0,
         d2: BUF0,
         d2Key: BUF16,
+
         qrSig: BUF0,
         signApiAddr: 'http://127.0.0.1:7458/api/sign',
+
         exchangeKey: BUF0,
         keySig: BUF0,
+
         cookies: '',
+        captchaUrl: '',
+        aid: '',
+        ticket: '',
+        randStr: '',
+
         unusualSig: BUF0,
         tempPwd: BUF0,
     };
@@ -409,7 +417,20 @@ export class BaseClient extends EventEmitter {
 
         const packet = buildNTLoginPacketBody.call(this, getRawTlv(this, 0x106, false, md5));
         const response = await this.sendUni('trpc.login.ecdh.EcdhService.SsoNTLoginPasswordLogin', packet);
-        return decodeNTLoginResponse.call(this, response);
+        const resp = decodeNTLoginResponse.call(this, response);
+
+        if (resp === LoginErrorCode.CaptchaVerify) {
+            if (this.sig.captchaUrl && this.sig.aid) this.emit("internal.slider", this.sig.captchaUrl);
+            else this.emit("internal.error.login", "[登陆失败]未知格式的验证码")
+        }
+
+        return resp;
+    }
+
+    async submitCaptcha(md5: Buffer, ticket: string, randStr: string) {
+        this.sig.ticket = ticket;
+        this.sig.randStr = randStr;
+        return this.passwordLogin(md5);
     }
 
     terminate() {
@@ -723,7 +744,7 @@ function buildLoginPacket(this: BaseClient, cmd: wtlogin, body: Buffer) {
     return buildUniPacket.call(this, cmd, frame);
 }
 
-/** cridential type could be Tlv106**/
+/** credential type could be Tlv106**/
 function buildNTLoginPacketBody(this: BaseClient, credential: Buffer) {
     const proto: Encodable = {
         1: {
@@ -746,6 +767,14 @@ function buildNTLoginPacketBody(this: BaseClient, credential: Buffer) {
             1: credential,
         },
     };
+
+    if (this.sig.ticket && this.sig.aid) {
+        proto[2][2] = {
+            1: this.sig.ticket,
+            2: "",  // randStr
+            3: this.sig.aid
+        }
+    }
     if (this.sig.cookies !== '') proto[1][5][1] = this.sig.cookies;
 
     return pb.encode({
@@ -774,6 +803,11 @@ function decodeNTLoginResponse(this: BaseClient, encrypted: Buffer): LoginErrorC
     } else {
         this.sig.unusualSig = inner[2][3]?.[2]?.toBuffer();
         this.sig.cookies = inner[1][5][1].toString();
+        this.sig.captchaUrl = inner[2][2]?.[3]?.toBuffer();
+
+        if (this.sig.captchaUrl) {
+            this.sig.aid = this.sig.captchaUrl.split("&sid=")[1].split("&")[0];
+        }
     }
 
     try {
