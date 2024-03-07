@@ -803,7 +803,7 @@ function decodeNTLoginResponse(this: BaseClient, encrypted: Buffer): LoginErrorC
     } else {
         this.sig.unusualSig = inner[2][3]?.[2]?.toBuffer();
         this.sig.cookies = inner[1][5][1].toString();
-        this.sig.captchaUrl = inner[2][2]?.[3]?.toBuffer();
+        this.sig.captchaUrl = inner[2][2]?.[3]?.toString();
 
         if (this.sig.captchaUrl) {
             this.sig.aid = this.sig.captchaUrl.split("&sid=")[1].split("&")[0];
