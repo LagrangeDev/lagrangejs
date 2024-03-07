@@ -10,7 +10,7 @@ import { bindInternalListeners } from './internal/listener';
 import { Friend } from './entities/friend';
 import { Group } from './entities/group';
 import { GroupMember } from './entities/groupMember';
-import {LoginErrorCode} from "../lib/errors";
+import { LoginErrorCode } from "./errors";
 
 export interface Client extends BaseClient {
   on<T extends keyof EventMap>(event: T, listener: EventMap<this>[T]): this;
