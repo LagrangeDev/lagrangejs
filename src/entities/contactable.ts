@@ -1,4 +1,4 @@
-import { gzip, lock, randomInt, timestamp, unzip } from '../core/constants';
+import { BUF0, gzip, lock, randomInt, timestamp, unzip } from '../core/constants';
 import { Client } from '../client';
 import { Forwardable, ImageElem, JsonElem, Quotable, Sendable } from '../message/elements';
 import { drop, ErrorCode } from '../errors';
@@ -64,17 +64,17 @@ export abstract class Contactable {
             // res head
             2: this.c.uid,
             6: forwardItem.group_id
-              ? this.c.memberList.get(forwardItem.group_id!)?.get(forwardItem.user_id)?.uid
-              : this.c.friendList.get(forwardItem.user_id)?.uid,
+                ? this.c.memberList.get(forwardItem.group_id!)?.get(forwardItem.user_id)?.uid
+                : this.c.friendList.get(forwardItem.user_id)?.uid,
             7: {
               6: forwardItem.nickname,
             },
             8: forwardItem.group_id
-              ? {
+                ? {
                   1: forwardItem.group_id,
                   4: this.c.memberList.get(forwardItem.group_id!)?.get(forwardItem.user_id)?.card || '',
                 }
-              : null,
+                : null,
           },
           2: {
             // res content
@@ -294,6 +294,74 @@ export abstract class Contactable {
     });
     const payload = await this.c.sendUni('LongConn.OffPicUp', body);
     return pb.decode(payload)[2] as pb.Proto | pb.Proto[];
+  }
+
+  private async _requestUploadImage(imgs: Image[]) {
+
+  }
+
+  private async _requestUploadGroupImage(imgs: Image[]) {
+    const proto = {
+      1: {
+        1:{ 1: 1, 2: 100 },
+        2: {
+          102: 2,
+          103: 1,
+          200: 2,
+          202: { 1: this.gid }
+        },
+        3: { 1: 2 }
+      },
+      2: {
+        1: [{ }],
+        2: true,
+        3: false,
+        4: randomInt(),
+        5: 2,
+        6: {
+          1: {
+            12: Buffer.from("0800180020004a00500062009201009a0100aa010c080012001800200028003a00", "hex"),
+          },
+          2: { 3: BUF0 },
+          3: {
+            11: BUF0,
+            12: BUF0,
+            13: BUF0
+          }
+        },
+        7: 0,
+        8: false
+      }
+    }
+
+    const files = [];
+    for (const img of imgs) {
+      const file = {
+        1: {
+          1: img.size,
+          2: img.md5.toString("hex"),
+          3: img.sha1.toString("hex"),
+          4: img.md5.toString("hex") + EXT[img.type],
+          5: {
+            1: 1,
+            2: 1001,
+            3: 0,
+            4: 0
+          },
+          6: img.width,
+          7: img.height,
+          8: 0,
+          9: 1
+        },
+        2: 0
+      }
+      files.push(file);
+    }
+
+    proto[2][1] = files;
+
+    const raw = await this.c.sendOidbSvcTrpcTcp(0x11c4, 100, pb.encode(proto), true);
+    const resp = pb.decode(raw);
   }
 
   // 取群聊图片fid

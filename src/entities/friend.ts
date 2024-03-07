@@ -7,76 +7,76 @@ import * as pb from '../core/protobuf';
 import { hide, lock } from '../core/constants';
 const friendCache: WeakMap<Friend.Info, Friend> = new WeakMap<Friend.Info, Friend>();
 export class Friend extends User {
-  protected constructor(c: Client, uin: number) {
-    super(c, uin);
-    this.info = c.friendList.get(uin);
-    this.uid = this.info?.uid;
-    lock(this, 'uid');
-    hide(this, '_info');
-  }
-  static from(this: Client, uid: number, strict = false): Friend {
-    const friendInfo = this.friendList.get(uid);
-    if (!friendInfo && strict) throw new Error(`Friend(${uid}) not found`);
-    let friend = friendCache.get(friendInfo!);
-    if (!friend) {
-      friend = new Friend(this, uid);
-      if (friendInfo) friendCache.set(friendInfo, friend);
+    protected constructor(c: Client, uin: number) {
+        super(c, uin);
+        this.info = c.friendList.get(uin);
+        this.uid = this.info?.uid;
+        lock(this, 'uid');
+        hide(this, '_info');
     }
-    return friend;
-  }
-  /**
-   * 获取文件信息
-   * @param fid 文件id
-   * @param hash 文件hash
-   */
-  async getFileInfo(fid: string, hash?: string) {
-    const body = pb.encode({
-      14: {
-        10: this.c.uin,
-        20: fid,
-        60: hash,
-        601: 0,
-      },
-    });
-    const payload = await this.c.sendOidbSvcTrpcTcp(0xe37, 1200, body);
-    const rsp = pb.decode(payload)[14];
-    if (rsp[10] !== 0) drop(ErrorCode.OfflineFileNotExists, rsp[20]);
-    const obj = rsp[30];
-    let url = String(obj[50]);
-    if (!url.startsWith('http')) url = `http://${obj[20]}:${obj[40]}` + url;
-    return {
-      name: String(rsp[40][7]),
-      fid: String(rsp[40][6]),
-      md5: rsp[40][100].toHex(),
-      size: rsp[40][3] as number,
-      duration: rsp[40][4] as number,
-      url,
-    } as Omit<FileElem, 'type'> & Record<'url', string>;
-  }
+    static from(this: Client, uid: number, strict = false): Friend {
+        const friendInfo = this.friendList.get(uid);
+        if (!friendInfo && strict) throw new Error(`Friend(${uid}) not found`);
+        let friend = friendCache.get(friendInfo!);
+        if (!friend) {
+            friend = new Friend(this, uid);
+            if (friendInfo) friendCache.set(friendInfo, friend);
+        }
+        return friend;
+    }
+    /**
+     * 获取文件信息
+     * @param fid 文件id
+     * @param hash 文件hash
+     */
+    async getFileInfo(fid: string, hash?: string) {
+        const body = pb.encode({
+            14: {
+                10: this.c.uin,
+                20: fid,
+                60: hash,
+                601: 0,
+            },
+        });
+        const payload = await this.c.sendOidbSvcTrpcTcp(0xe37, 1200, body);
+        const rsp = pb.decode(payload)[14];
+        if (rsp[10] !== 0) drop(ErrorCode.OfflineFileNotExists, rsp[20]);
+        const obj = rsp[30];
+        let url = String(obj[50]);
+        if (!url.startsWith('http')) url = `http://${obj[20]}:${obj[40]}` + url;
+        return {
+            name: String(rsp[40][7]),
+            fid: String(rsp[40][6]),
+            md5: rsp[40][100].toHex(),
+            size: rsp[40][3] as number,
+            duration: rsp[40][4] as number,
+            url,
+        } as Omit<FileElem, 'type'> & Record<'url', string>;
+    }
 
-  /**
-   * 获取离线文件下载地址
-   * @param fid 文件id
-   */
-  async getFileUrl(fid: string) {
-    return (await this.getFileInfo(fid)).url;
-  }
-  async sendMsg(content: Sendable, source?: Quotable): Promise<MessageRet> {
-    const { rich, brief } = await this._preprocess(content, source);
-    const seq = this.c.sig.seq + 1;
-    const rsp = await this._sendMsg({ 1: rich });
-    if (rsp[1] !== 0) {
-      this.c.logger.error(`failed to send: [Private: ${this.uin}] ${rsp[2]}(${rsp[1]})`);
-      drop(rsp[1], rsp[2]);
+    /**
+     * 获取离线文件下载地址
+     * @param fid 文件id
+     */
+    async getFileUrl(fid: string) {
+        return (await this.getFileInfo(fid)).url;
     }
-    this.c.logger.info(`succeed to send: [Private(${this.uin})] ` + brief);
-    const time = rsp[3];
-    return { seq, time };
-  }
+    async sendMsg(content: Sendable, source?: Quotable): Promise<MessageRet> {
+        const { rich, brief } = await this._preprocess(content, source);
+        const seq = this.c.sig.seq + 1;
+        const rsp = await this._sendMsg({ 1: rich });
+        if (rsp[1] !== 0) {
+            this.c.logger.error(`failed to send: [Private: ${this.uin}] ${rsp[2]}(${rsp[1]})`);
+            drop(rsp[1], rsp[2]);
+        }
+        this.c.logger.info(`succeed to send: [Private(${this.uin})] ` + brief);
+        const time = rsp[3];
+        return { seq, time };
+    }
 }
 export namespace Friend {
-  export interface Info extends User.Info {
-    remark: string;
-    class_id: number;
-  }
+    export interface Info extends User.Info {
+        remark: string;
+        class_id: number;
+    }
 }

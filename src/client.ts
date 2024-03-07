@@ -10,20 +10,21 @@ import { bindInternalListeners } from './internal/listener';
 import { Friend } from './entities/friend';
 import { Group } from './entities/group';
 import { GroupMember } from './entities/groupMember';
+import {LoginErrorCode} from "../lib/errors";
 
 export interface Client extends BaseClient {
   on<T extends keyof EventMap>(event: T, listener: EventMap<this>[T]): this;
 
   on<S extends string | symbol>(
-    event: S & Exclude<S, keyof EventMap>,
-    listener: (this: this, ...args: any[]) => void,
+      event: S & Exclude<S, keyof EventMap>,
+      listener: (this: this, ...args: any[]) => void,
   ): this;
 
   once<T extends keyof EventMap>(event: T, listener: EventMap<this>[T]): this;
 
   once<S extends string | symbol>(
-    event: S & Exclude<S, keyof EventMap>,
-    listener: (this: this, ...args: any[]) => void,
+      event: S & Exclude<S, keyof EventMap>,
+      listener: (this: this, ...args: any[]) => void,
   ): this;
 
   prependListener<T extends keyof EventMap>(event: T, listener: EventMap<this>[T]): this;
@@ -37,8 +38,8 @@ export interface Client extends BaseClient {
   off<T extends keyof EventMap>(event: T, listener: EventMap<this>[T]): this;
 
   off<S extends string | symbol>(
-    event: S & Exclude<S, keyof EventMap>,
-    listener: (this: this, ...args: any[]) => void,
+      event: S & Exclude<S, keyof EventMap>,
+      listener: (this: this, ...args: any[]) => void,
   ): this;
 }
 
@@ -100,15 +101,15 @@ export class Client extends BaseClient {
     this.directory = dir;
     this.config = config as Required<Config>;
     this.token =
-      token ??
-      ({
-        Uin: uin,
-        Uid: '',
-        PasswordMd5: '',
-        Session: {
-          TempPassword: '',
-        },
-      } as SavedToken);
+        token ??
+        ({
+          Uin: uin,
+          Uid: '',
+          PasswordMd5: '',
+          Session: {
+            TempPassword: '',
+          },
+        } as SavedToken);
 
     bindInternalListeners.call(this);
     this.on('internal.verbose', (verbose, level) => {
@@ -144,8 +145,13 @@ export class Client extends BaseClient {
 
       this.token.PasswordMd5 = md5pass.toString('hex');
     }
+
     try {
-      return await this.tokenLogin(Buffer.from(this.token.Session.TempPassword, 'base64')); // EasyLogin
+      const code = await this.tokenLogin(Buffer.from(this.token.Session.TempPassword, 'base64')); // EasyLogin
+      if (code) {
+        this.emit(`internal.error.token', "Token login failed, code: ${code}`);
+        return await this.passwordLogin(Buffer.from(this.token.PasswordMd5, 'hex'));
+      }
     } catch (e) {
       if (this.token.PasswordMd5 && this.token.Uid) {
         // 检测Uid的目的是确保之前登陆过
@@ -154,6 +160,8 @@ export class Client extends BaseClient {
         return await (this.sig.qrSig.length ? this.qrcodeLogin() : this.fetchQrcode());
       }
     }
+
+    return LoginErrorCode.UnusualVerify;
   }
 
   async fetchClientKey() {
@@ -170,12 +178,12 @@ export class Client extends BaseClient {
       2: subCmd,
       4: buffer,
       7: isAfter
-        ? {
+          ? {
             1: 0,
             2: [],
             3: this.appInfo.subAppId,
           }
-        : null,
+          : null,
       12: isUid,
     });
     return this.sendUni(command, result);

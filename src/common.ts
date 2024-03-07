@@ -28,6 +28,13 @@ export function md5Stream(readable: stream.Readable) {
   }) as Promise<Buffer>;
 }
 
+export function sha1Stream(readable: stream.Readable) {
+  return new Promise((resolve, reject) => {
+    readable.on('error', reject);
+    readable.pipe(crypto.createHash('sha1').on('error', reject).on('data', resolve));
+  }) as Promise<Buffer>;
+}
+
 /** 计算文件的md5和sha */
 export function fileHash(filepath: string) {
   const readable = fs.createReadStream(filepath);

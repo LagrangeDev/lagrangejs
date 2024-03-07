@@ -401,7 +401,7 @@ export class BaseClient extends EventEmitter {
 
     const packet = buildNTLoginPacketBody.call(this, token);
     const response = await this.sendUni('trpc.login.ecdh.EcdhService.SsoNTLoginEasyLogin', packet);
-    decodeNTLoginResponse.call(this, response);
+    return decodeNTLoginResponse.call(this, response);
   }
 
   async passwordLogin(md5: Buffer) {
@@ -409,7 +409,7 @@ export class BaseClient extends EventEmitter {
 
     const packet = buildNTLoginPacketBody.call(this, getRawTlv(this, 0x106, false, md5));
     const response = await this.sendUni('trpc.login.ecdh.EcdhService.SsoNTLoginPasswordLogin', packet);
-    decodeNTLoginResponse.call(this, response);
+    return decodeNTLoginResponse.call(this, response);
   }
 
   terminate() {

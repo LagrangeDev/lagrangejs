@@ -5,7 +5,7 @@ export enum LoginErrorCode {
   UnusualVerify = 140022011,
   NewDeviceVerify = 140022010,
   CaptchaVerify = 140022008,
-  Success = 0,
+  Success = 0
 }
 
 export enum ErrorCode {
