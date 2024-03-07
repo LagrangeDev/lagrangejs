@@ -1,10 +1,10 @@
 import { User } from './user';
-import { Client } from '@/client';
-import { lock } from '@/core/constants';
+import { Client } from '../client';
+import { lock } from '../core/constants';
 import * as pb from '../core/protobuf';
-import { drop } from '@/errors';
-import { Quotable, Sendable } from '@/message/elements';
-import { MessageRet } from '@/events/message';
+import { drop } from '../errors';
+import { Quotable, Sendable } from '../message/elements';
+import { MessageRet } from '../events/message';
 import { Group } from './group';
 const memberCache: WeakMap<GroupMember.Info, GroupMember> = new WeakMap<GroupMember.Info, GroupMember>();
 export class GroupMember extends User {
