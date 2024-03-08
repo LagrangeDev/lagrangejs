@@ -15,7 +15,8 @@
             "@/*": ["src/*"],
             "@": ["src"]
         },
-        "outDir": "lib"
+        "outDir": "lib",
+        "sourceMap": true
     },
     "include": ["src"],
     "exclude": ["src/test.ts"]
