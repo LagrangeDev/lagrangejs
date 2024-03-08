@@ -136,6 +136,13 @@ function kickoffListener(this: Client, message: string) {
     this.em('system.offline.kickoff', { message });
 }
 
+function loginErrorListener(this: Client, code: number, message: string) {
+    if (code > 0) {
+        this.logger.error(message);
+        this.em("system.login.error", { code, message });
+    }
+}
+
 export function bindInternalListeners(this: Client) {
     this.on('internal.online', onlineListener);
     this.on('internal.kickoff', kickoffListener);
@@ -143,4 +150,5 @@ export function bindInternalListeners(this: Client) {
     this.on('internal.qrcode', qrcodeListener);
     this.on('internal.slider', sliderListener);
     this.on('internal.sso', eventsListener);
+    this.on("internal.error.login", loginErrorListener);
 }

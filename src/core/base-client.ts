@@ -124,9 +124,10 @@ export class BaseClient extends EventEmitter {
     readonly appInfo: AppInfo;
     readonly deviceInfo: DeviceInfo;
     readonly sig = {
+        password: BUF0,
         seq: randomBytes(4).readUInt32BE() & 0xfff,
 
-        tgtgt: BUF0,
+        tgtgt: BUF16,
         tgt: BUF0,
         d2: BUF0,
         d2Key: BUF16,
@@ -414,6 +415,7 @@ export class BaseClient extends EventEmitter {
 
     async passwordLogin(md5: Buffer) {
         if (!this.sig.keySig.length || !this.sig.exchangeKey.length) await this.keyExchange();
+        this.sig.password = md5;
 
         const packet = buildNTLoginPacketBody.call(this, getRawTlv(this, 0x106, false, md5));
         const response = await this.sendUni('trpc.login.ecdh.EcdhService.SsoNTLoginPasswordLogin', packet);
@@ -427,10 +429,10 @@ export class BaseClient extends EventEmitter {
         return resp;
     }
 
-    async submitCaptcha(md5: Buffer, ticket: string, randStr: string) {
+    async submitCaptcha(ticket: string, randStr: string) {
         this.sig.ticket = ticket;
         this.sig.randStr = randStr;
-        return this.passwordLogin(md5);
+        return this.passwordLogin(this.sig.password);
     }
 
     terminate() {
@@ -771,11 +773,13 @@ function buildNTLoginPacketBody(this: BaseClient, credential: Buffer) {
     if (this.sig.ticket && this.sig.aid) {
         proto[2][2] = {
             1: this.sig.ticket,
-            2: "",  // randStr
+            2: this.sig.randStr,
             3: this.sig.aid
         }
     }
-    if (this.sig.cookies !== '') proto[1][5][1] = this.sig.cookies;
+    if (this.sig.cookies !== '') {
+        proto[1][5] = { 1: this.sig.cookies }
+    }
 
     return pb.encode({
         1: this.sig.keySig,
@@ -802,8 +806,14 @@ function decodeNTLoginResponse(this: BaseClient, encrypted: Buffer): LoginErrorC
         });
     } else {
         this.sig.unusualSig = inner[2][3]?.[2]?.toBuffer();
-        this.sig.cookies = inner[1][5][1].toString();
+        this.sig.cookies = inner[1][5]?.[1]?.toString();
         this.sig.captchaUrl = inner[2][2]?.[3]?.toString();
+
+        const tag = inner[1]?.[4]?.[2]?.toString();
+        const message = inner[1]?.[4]?.[3]?.toString();
+        if (tag && message) {
+            this.emit("internal.error.login", inner[1][4][1] ?? 0, `[${tag}]${message}`)
+        }
 
         if (this.sig.captchaUrl) {
             this.sig.aid = this.sig.captchaUrl.split("&sid=")[1].split("&")[0];

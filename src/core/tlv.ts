@@ -51,14 +51,14 @@ const map: { [tag: number]: (this: BaseClient, ...args: any[]) => Writer } = {
             .writeU32(8001) // app client ver
             .writeU64(this.uin)
             .write32((Date.now() / 1000) & 0xffffffff)
-            .writeBytes(Buffer.alloc(4)) // dummy ip
+            .writeU32(0) // dummy ip
             .writeU8(1) // save password
             .writeBytes(md5pass)
             .writeBytes(this.sig.tgtgt)
             .writeU32(0)
             .writeU8(1) // guid available
             .writeBytes(this.deviceInfo.guid)
-            .writeU32(0)
+            .writeU32(1)
             .writeU32(1) // login type password
             .writeTlv(String(this.uin))
             .read();
