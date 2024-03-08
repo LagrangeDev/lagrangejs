@@ -170,6 +170,18 @@ export class Client extends BaseClient {
 
         return packet[4][3].toString();
     }
+
+    async fetchCookies(domains: string[]) {
+        const proto = pb.encode({ 1: domains });
+        const response = await this.sendOidbSvcTrpcTcp(0x102a, 0, proto, false);
+        const packet = pb.decode(response);
+
+        const cookies: string[] = [];
+        for (let cookie of packet[1]) cookies.push(cookie[2].toString());
+
+        return cookies;
+    }
+
     sendOidbSvcTrpcTcp(cmd: number, subCmd: number, buffer: Uint8Array, isUid = false, isAfter = false) {
         const command = `OidbSvcTrpcTcp.0x${cmd.toString(16)}_${subCmd}`;
 
