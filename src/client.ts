@@ -96,7 +96,6 @@ export class Client extends BaseClient {
         this.logger = log4js.getLogger(`[${this.deviceInfo.deviceName}:${uin}]`);
         (this.logger as log4js.Logger).level = config.logLevel;
         if (regenerate) this.logger.mark('创建了新的设备文件：' + deviceFile);
-        if (!token) this.logger.mark('未找到token缓存, 使用扫码登录');
 
         this.directory = dir;
         this.config = config as Required<Config>;
@@ -146,7 +145,7 @@ export class Client extends BaseClient {
             this.token.PasswordMd5 = md5pass.toString('hex');
         }
 
-        try {
+        if (this.token.Session.TempPassword) try {
             const code = await this.tokenLogin(Buffer.from(this.token.Session.TempPassword, 'base64')); // EasyLogin
             if (!code) return code
         } catch (e) {}
