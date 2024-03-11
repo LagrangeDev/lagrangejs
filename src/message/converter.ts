@@ -16,6 +16,9 @@ import {
     TextElem,
     VideoElem,
     XmlElem,
+    MarkdownElem,
+    ButtonElem,
+    RawElem,
 } from './elements';
 import { FACE_OLD_BUF, facemap } from './face';
 import { deflateSync } from 'zlib';
@@ -352,4 +355,73 @@ export class Converter {
     private file(elem: FileElem) {
         throw new Error('暂不支持发送或转发file元素，请调用文件相关API完成该操作');
     }
+
+  private markdown(elem: MarkdownElem) {
+    const { content } = elem
+    this.elems.push({
+      53: {
+        1: 45,
+        2: {
+          1: content
+        },
+        3: 1
+      }
+    })
+    this.brief += "[markdown消息]"
+  }
+
+  private button(elem: ButtonElem) {
+    const { content } = elem
+    const _content = {
+      1: {
+        1: content.rows.map(row => {
+          return {
+            1: row.buttons.map(button => {
+              return {
+                1: button.id,
+                2: {
+                  1: button.render_data.label,
+                  2: button.render_data.visited_label,
+                  3: button.render_data.style
+                },
+                3: {
+                  1: button.action.type,
+                  2: {
+                    1: button.action.permission.type,
+                    2: button.action.permission.specify_role_ids,
+                    3: button.action.permission.specify_user_ids,
+                  },
+                  4: button.action.unsupport_tips,
+                  5: button.action.data,
+                  7: button.action.reply ? 1 : 0,
+                  8: button.action.enter ? 1 : 0
+                }
+              }
+            })
+          }
+        }),
+        2: content.appid
+      }
+    }
+    this.elems.push({
+      53: {
+        1: 46,
+        2: _content,
+        3: 1
+      }
+    })
+    this.brief += "[button消息]"
+  }
+
+  private raw(elem: RawElem) {
+    let data = elem.data;
+    if (typeof data === 'string' && data.startsWith("protobuf://")) {
+      data = Buffer.from(data.replace("protobuf://", ""), "base64")
+      this.elems.push(data)
+    } else {
+      if (!Array.isArray(data)) data = [data]
+      this.elems.push(...data)
+    }
+    this.brief += "[原始消息]"
+  }
 }

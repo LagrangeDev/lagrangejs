@@ -203,8 +203,67 @@ export class Parser {
                 };
                 content = `{sface:${elem.id}}`;
                 break;
+            case 45:
+                elem = {
+                    type: "markdown",
+                    content: proto[1]?.toString()
+                }
+                break
+            case 46:
+                try {
+                    const rows = Array.isArray(proto[1][1]) ? proto[1][1] : [proto[1][1]]
+                    elem = {
+                        type: "button",
+                        content: {
+                            appid: Number(proto[1][2]) || 0,
+                            rows: rows.map(row => {
+                                row = Array.isArray(row[1]) ? row[1] : [row[1]]
+                                const buttons: T.Button[] = []
+                                for (let val of row) {
+                                    const button: T.Button = {
+                                        id: "",
+                                        render_data: {},
+                                        action: {
+                                            permission: {}
+                                        }
+                                    } as T.Button
+                                    if (val[1]) button.id = val[1]?.toString()
+                                    if (val[2]) {
+                                        button.render_data.label = val[2][1]?.toString()
+                                        button.render_data.visited_label = val[2][2]?.toString()
+                                        button.render_data.style = Number(val[2][3]) || 0
+                                    }
+                                    if (val[3]) {
+                                        button.action.type = Number(val[3][1]) || 0
+                                        button.action.unsupport_tips = val[3][4]?.toString()
+                                        button.action.data = val[3][5]?.toString()
+                                        button.action.reply = val[3][7] === 1
+                                        button.action.enter = val[3][8] === 1
+                                        if (val[3][2]) {
+                                            button.action.permission.type = Number(val[3][2][1]) || 0
+                                            button.action.permission.specify_role_ids = val[3][2][2] || []
+                                            button.action.permission.specify_user_ids = val[3][2][3] || []
+                                        }
+                                    }
+                                    buttons.push(button)
+                                }
+                                return { buttons }
+                            })
+                        }
+                    }
+                } catch {
+                    return
+                }
+                break
             default:
-                return;
+                const data: any = {}
+                data[type] = proto.toBuffer()
+                elem = {
+                    type: "raw",
+                    data: "protobuf://" + Buffer.from(pb.encode(data)).toString('base64')
+                }
+                brief = "原始消息"
+                this.content = "[" + brief + "]"
         }
 
         // 删除回复中多余的AT元素
@@ -268,9 +327,15 @@ export class Parser {
                         if (proto[1] === 33) {
                             //face(id>255)
                             this.parsePartialElem(33, proto[2]);
+                        } else if (proto[1] === 45) {
+                            this.parsePartialElem(proto[1], proto[2])
+                        } else if (proto[1] === 46) {
+                            this.parsePartialElem(proto[1], proto[2])
                         } else if (proto[1] === 48) {
                             //image prefix of qqnt
                             this.imagePrefix = 'https://' + proto[2][1][2][3];
+                        } else {
+                            this.parsePartialElem(type, proto)
                         }
                         break;
                     default:
