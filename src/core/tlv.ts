@@ -57,7 +57,7 @@ const map: { [tag: number]: (this: BaseClient, ...args: any[]) => Writer } = {
             .writeBytes(this.sig.tgtgt)
             .writeU32(0)
             .writeU8(1) // guid available
-            .writeBytes(this.deviceInfo.guid)
+            .writeBytes(Buffer.from(this.deviceInfo.guid, "hex"))
             .writeU32(1)
             .writeU32(1) // login type password
             .writeTlv(String(this.uin))
