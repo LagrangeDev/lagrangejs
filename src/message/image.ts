@@ -72,19 +72,6 @@ export class Image {
     /** 实例化后必须等待此异步任务完成后才能上传图片 */
     task: Promise<void>;
 
-    /** 从服务端拿到fid后必须设置此值，否则图裂 */
-    set fid(val: any) {
-        this._fid = val;
-        if (this.dm) {
-            this.proto[3] = val;
-            this.proto[10] = val;
-        } else {
-            this.proto[7] = val;
-        }
-    }
-
-    private _fid?: any;
-
     /** 图片属性 */
     md5 = randomBytes(16);
     sha1 = randomBytes(20);
@@ -114,7 +101,6 @@ export class Image {
         const { file, cache, timeout, headers, asface, origin } = elem;
         this.origin = origin;
         this.asface = asface;
-        this.setProto();
         if (file instanceof Buffer) {
             this.task = this.fromProbeSync(file);
         } else if (file instanceof Readable) {
@@ -149,7 +135,6 @@ export class Image {
         this.width = width;
         this.height = height;
         TYPE[ext] & (this.type = TYPE[ext]);
-        this.setProto();
     }
 
     private async fromProbeSync(buf: Buffer) {
@@ -159,7 +144,6 @@ export class Image {
         this.sha1 = sha1(buf);
         this.size = buf.length;
         this.readable = Readable.from(buf, { objectMode: false });
-        this.setProto();
     }
 
     private async fromReadable(readable: Readable, timeout?: number) {
@@ -182,7 +166,6 @@ export class Image {
             this.sha1 = sha1;
             this.size = (await fs.promises.stat(this.tmpfile)).size;
             this.readable = fs.createReadStream(this.tmpfile, { highWaterMark: 1024 * 256 });
-            this.setProto();
         } catch (e) {
             this.deleteTmpFile();
             throw e;
@@ -239,57 +222,7 @@ export class Image {
             this.sha1 = sha1;
             this.size = stat.size;
             this.readable = fs.createReadStream(file, { highWaterMark: 1024 * 256 });
-            this.setProto();
         }
-    }
-    async getProto() {
-        await this.task;
-        return this.proto;
-    }
-    private setProto() {
-        let proto;
-        if (this.dm) {
-            proto = {
-                1: this.md5.toString('hex'),
-                2: this.size,
-                3: this._fid,
-                5: this.type,
-                7: this.md5,
-                8: this.height,
-                9: this.width,
-                10: this._fid,
-                13: this.origin ? 1 : 0,
-                16: this.type === 4 ? 5 : 0,
-                24: 0,
-                25: 0,
-                29: {
-                    1: this.asface ? 1 : 0,
-                },
-            };
-        } else {
-            proto = {
-                2: this.md5.toString('hex') + (this.asface ? '.gif' : '.jpg'),
-                7: this._fid,
-                8: 0,
-                9: 0,
-                10: 66,
-                12: 1,
-                13: this.md5,
-                // 17: 3,
-                20: this.type,
-                22: this.width,
-                23: this.height,
-                24: 200,
-                25: this.size,
-                26: this.origin ? 1 : 0,
-                27: 0,
-                28: 0,
-                34: {
-                    1: this.asface ? 1 : 0,
-                },
-            };
-        }
-        Object.assign(this.proto, proto);
     }
 
     /** 服务端图片失效时建议调用此函数 */
