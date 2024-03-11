@@ -168,15 +168,15 @@ export class BaseClient extends EventEmitter {
 
     constructor(
         public readonly uin: number,
+        device: DeviceInfo,
         uid?: string,
         p: Platform = Platform.Linux,
-        guid?: string,
     ) {
         super();
         this.platform = p;
         this.uid = uid;
         this.appInfo = getAppInfo(p);
-        this.deviceInfo = generateDeviceInfo(guid ?? uin);
+        this.deviceInfo = device;
 
         this[NET].on('error', err => this.emit('internal.verbose', err.message, LogLevel.Error));
         this[NET].on('close', () => {
@@ -538,8 +538,9 @@ async function register(this: BaseClient) {
         });
         const response = await this.sendUni('trpc.qq_new_tech.status_svc.StatusService.Register', packet);
         const pbResponse = pb.decode(response);
+        const resMsg = pbResponse[2].toString()
 
-        if (pbResponse[2].toString() === 'register success') {
+        if (resMsg === 'register success') {
             this[IS_ONLINE] = true;
             this[LOGIN_LOCK] = false;
             this[HEARTBEAT] = setInterval(async () => {
@@ -563,6 +564,8 @@ async function register(this: BaseClient) {
                     },
                 }),
             );
+        } else if (resMsg == "in kick storage,please logout!") {
+            this.emit('internal.error.login', pbResponse[1], `[禁止登录]请删除 device-${this.uin}.json 重新登录`)
         } else {
             this.emit('internal.error.token');
         }

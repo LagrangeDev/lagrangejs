@@ -1,4 +1,5 @@
 import { md5 } from './constants';
+import { randomBytes } from 'crypto';
 
 export enum Platform {
     Linux,
@@ -66,7 +67,7 @@ export function getAppInfo(p: Platform): AppInfo {
 }
 
 export function generateDeviceInfo(uin: string | number) {
-    const guid = typeof uin === 'string' ? uin : md5(uin.toString()).toString('hex');
+    const guid = md5(randomBytes(32)).toString('hex');
     return {
         guid: guid,
         deviceName: `Lagrange-${Buffer.from(md5(guid.toString()).slice(0, 3)).toString('hex').toUpperCase()}`,

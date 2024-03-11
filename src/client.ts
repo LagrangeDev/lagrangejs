@@ -91,7 +91,7 @@ export class Client extends BaseClient {
         } catch {
             token = null;
         }
-        super(uin, token?.Uid ?? '', config.platform);
+        super(uin, device, token?.Uid ?? '', config.platform);
         this.sig.signApiAddr = config.signApiAddr || this.sig.signApiAddr;
         this.logger = log4js.getLogger(`[${this.deviceInfo.deviceName}:${uin}]`);
         (this.logger as log4js.Logger).level = config.logLevel;
@@ -148,17 +148,14 @@ export class Client extends BaseClient {
 
         try {
             const code = await this.tokenLogin(Buffer.from(this.token.Session.TempPassword, 'base64')); // EasyLogin
-            if (code) {
-                this.emit(`internal.error.token', "Token login failed, code: ${code}`);
-                return await this.passwordLogin(Buffer.from(this.token.PasswordMd5, 'hex'));
-            }
-        } catch (e) {
-            if (this.token.PasswordMd5 && this.token.Uid) {
-                // 检测Uid的目的是确保之前登陆过
-                return await this.passwordLogin(Buffer.from(this.token.PasswordMd5, 'hex'));
-            } else {
-                return await (this.sig.qrSig.length ? this.qrcodeLogin() : this.fetchQrcode());
-            }
+            if (!code) return code
+        } catch (e) {}
+
+        if (this.token.PasswordMd5 && this.token.Uid) {
+            // 检测Uid的目的是确保之前登陆过
+            return await this.passwordLogin(Buffer.from(this.token.PasswordMd5, 'hex'));
+        } else {
+            return await (this.sig.qrSig.length ? this.qrcodeLogin() : this.fetchQrcode());
         }
 
         return LoginErrorCode.UnusualVerify;
