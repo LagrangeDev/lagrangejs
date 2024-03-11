@@ -1,4 +1,4 @@
-import { BUF0, gzip, lock, randomInt, timestamp, unzip } from '../core/constants';
+import { BUF0, gzip, int32ip2str, lock, randomInt, timestamp, unzip } from '../core/constants';
 import { Client } from '../client';
 import { Forwardable, ImageElem, JsonElem, Quotable, Sendable } from '../message/elements';
 import { drop, ErrorCode } from '../errors';
@@ -170,7 +170,9 @@ export abstract class Contactable {
         }
         let n = 0;
         while (imgs.length > n) {
-            let rsp = await (this.dm ? this._offPicUp : this._groupPicUp).call(this, imgs.slice(n, n + 20) as Image[]);
+            let rsp = this.dm
+                ? await this._requestUploadPrivateImage.call(this, imgs.slice(n, n + 20) as Image[])
+                : await this._requestUploadGroupImage.call(this, imgs.slice(n, n + 20) as Image[]);
             !Array.isArray(rsp) && (rsp = [rsp]);
             const tasks: Promise<any>[] = [];
             for (let i = n; i < imgs.length; ++i) {
@@ -192,31 +194,39 @@ export abstract class Contactable {
 
     private async _uploadImage(img: Image, rsp: pb.Proto) {
         const j = this.dm ? 1 : 0;
-        if (rsp[2 + j] !== 0) throw new Error(String(rsp[3 + j]));
-        img.fid = rsp[9 + j].toBuffer?.() || rsp[9 + j];
-        if (rsp[4 + j]) {
-            img.deleteTmpFile();
-            return;
-        }
         if (!img.readable) {
             img.deleteCacheFile();
             return;
         }
-        const ip = rsp[6 + j]?.[0] || rsp[6 + j];
-        const port = rsp[7 + j]?.[0] || rsp[7 + j];
+        const ip = int32ip2str(rsp[2][3][0][1]);
+        const port = rsp[2][3][0][2];
+        const ext: Encodable = {
+            1: rsp[2][6][1][1][2].toString(),
+            2: rsp[2][1]?.toString(),
+            5: {
+                1: rsp[2][3].map((x: pb.Proto) => ({
+                    1: {
+                        1: 1,
+                        2: int32ip2str(x[1]),
+                    },
+                    2: x[2],
+                })),
+            },
+            6: rsp[2][6][1],
+            10: 1024 * 1024,
+            11: {
+                1: img.sha1.toString('hex'),
+            },
+        };
+
         return highwayUpload
-            .call(
-                this.c,
-                img.readable,
-                {
-                    cmdid: j ? CmdID.DmImage : CmdID.GroupImage,
-                    md5: img.md5,
-                    size: img.size,
-                    ticket: rsp[8 + j].toBuffer(),
-                },
-                ip,
-                port,
-            )
+            .call(this.c, img.readable, {
+                cmdid: j ? CmdID.DmImage : CmdID.GroupImage,
+                md5: img.md5,
+                size: img.size,
+                ticket: await this.c.fetchHighwayTicket(),
+                ext: pb.encode(ext),
+            })
             .finally(img.deleteTmpFile.bind(img));
     }
 
@@ -267,55 +277,21 @@ export abstract class Contactable {
 
         return unzip(pb.decode(payload)[1][4].toBuffer());
     }
-    // 取私聊图片fid
-    private async _offPicUp(imgs: Image[]) {
-        const req: pb.Encodable[] = [];
-        for (const img of imgs) {
-            req.push({
-                1: this.c.uin,
-                3: 1,
-                4: img.md5,
-                5: img.size,
-                6: `${img.md5.toString('hex')}.${EXT[img.type] || 'jpg'}`,
-                7: 2,
-                8: 8,
-                9: 0,
-                10: 0,
-                11: 0, //retry
-                12: 8, //bu
-                13: img.origin ? 1 : 0,
-                14: img.width,
-                15: img.height,
-                16: img.type,
-                17: this.c.appInfo.currentVersion,
-                22: 0,
-                25: this.uid,
-            });
-        }
-        const body = pb.encode({
-            1: 1,
-            2: req,
-            3: 10,
-        });
-        const payload = await this.c.sendUni('LongConn.OffPicUp', body);
-        return pb.decode(payload)[2] as pb.Proto | pb.Proto[];
-    }
-
-    private async _requestUploadImage(imgs: Image[]) {}
 
     private async _requestUploadGroupImage(imgs: Image[]) {
         const proto: Encodable = {
             1: {
                 1: { 1: 1, 2: 100 },
                 2: {
-                    102: 2,
-                    103: 1,
+                    101: 2,
+                    102: 1,
                     200: 2,
                     202: { 1: this.gid },
                 },
                 3: { 1: 2 },
             },
             2: {
+                1: [],
                 2: true,
                 3: false,
                 4: randomInt(),
@@ -336,14 +312,57 @@ export abstract class Contactable {
             },
         };
 
-        const files = [];
-        for (const img of imgs) {
+        return this._requestUploadImage(imgs, proto, 0x11c4);
+    }
+
+    private async _requestUploadPrivateImage(imgs: Image[]) {
+        const proto: Encodable = {
+            1: {
+                1: { 1: 1, 2: 100 },
+                2: {
+                    101: 2,
+                    102: 1,
+                    200: 1,
+                    201: {
+                        1: 2,
+                        2: this.c.uid,
+                    },
+                },
+                3: { 1: 2 },
+            },
+            2: {
+                1: [],
+                2: true,
+                3: false,
+                4: randomInt(),
+                5: 1,
+                6: {
+                    1: {
+                        11: Buffer.from('0800180020004a00500062009201009a0100aa010c080012001800200028003a00', 'hex'),
+                    },
+                    2: { 3: BUF0 },
+                    3: {
+                        11: BUF0,
+                        12: BUF0,
+                        13: BUF0,
+                    },
+                },
+                7: 0,
+                8: false,
+            },
+        };
+
+        return this._requestUploadImage(imgs, proto, 0x11c5);
+    }
+
+    private async _requestUploadImage(file: Image[], body: pb.Encodable, subCmd: number) {
+        for (const img of file) {
             const file = {
                 1: {
                     1: img.size,
                     2: img.md5.toString('hex'),
                     3: img.sha1.toString('hex'),
-                    4: img.md5.toString('hex') + EXT[img.type],
+                    4: img.md5.toString('hex') + '.' + EXT[img.type],
                     5: {
                         1: 1,
                         2: 1001,
@@ -357,43 +376,20 @@ export abstract class Contactable {
                 },
                 2: 0,
             };
-            files.push(file);
+            body[2][1].push(file);
         }
-        proto[2][1] = files;
 
-        const raw = await this.c.sendOidbSvcTrpcTcp(0x11c4, 100, pb.encode(proto), true);
+        const raw = await this.c.sendOidbSvcTrpcTcp(subCmd, 100, pb.encode(body), true);
         const resp = pb.decode(raw);
-    }
 
-    // 取群聊图片fid
-    private async _groupPicUp(imgs: Image[]) {
-        const req = [];
-        for (const img of imgs) {
-            req.push({
-                1: this.gid,
-                2: this.c.uin,
-                3: 1,
-                4: img.md5,
-                5: img.size,
-                6: `${img.md5.toString('hex')}.${EXT[img.type] || 'jpg'}`,
-                7: 2,
-                8: 8,
-                9: 212, //bu
-                10: img.width,
-                11: img.height,
-                12: img.type,
-                13: this.c.appInfo.currentVersion,
-                16: img.origin ? 1 : 0,
-                19: 0,
-            });
+        for (let i = 0; i < file.length; i++) {
+            const img = file[i];
+
+            img.commonElems = resp[4][2][6];
+            img.compatElems = resp[4][2][8];
         }
-        const body = pb.encode({
-            1: 3,
-            2: 1,
-            3: req,
-        });
-        const payload = await this.c.sendUni('ImgStore.GroupPicUp', body);
-        return pb.decode(payload)[3];
+
+        return resp[4];
     }
 
     /**

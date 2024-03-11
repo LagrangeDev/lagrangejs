@@ -87,7 +87,7 @@ export class Image {
 
     /** 图片属性 */
     md5 = randomBytes(16);
-    sha1 = randomBytes(16);
+    sha1 = randomBytes(20);
     size = 0xffff;
     width = 320;
     height = 240;
@@ -95,7 +95,7 @@ export class Image {
     origin?: boolean;
     private asface?: boolean;
 
-    conpatElems?: pb.Proto[];
+    compatElems?: pb.Proto;
     commonElems?: pb.Proto;
 
     /** 缓存文件路径 */
@@ -179,6 +179,7 @@ export class Image {
             ]);
             this.setProperties(dimensions);
             this.md5 = md5;
+            this.sha1 = sha1;
             this.size = (await fs.promises.stat(this.tmpfile)).size;
             this.readable = fs.createReadStream(this.tmpfile, { highWaterMark: 1024 * 256 });
             this.setProto();
@@ -226,14 +227,16 @@ export class Image {
             const stat = await fs.promises.stat(file);
             if (stat.size <= 0 || stat.size > MAX_UPLOAD_SIZE) throw new Error('bad file size: ' + stat.size);
             const readable = fs.createReadStream(file);
-            const [dimensions, md5] = await Promise.all([
+            const [dimensions, md5, sha1] = await Promise.all([
                 // @ts-ignore
                 probe(readable, true),
                 md5Stream(readable),
+                sha1Stream(readable),
             ]);
             readable.destroy();
             this.setProperties(dimensions);
             this.md5 = md5;
+            this.sha1 = sha1;
             this.size = stat.size;
             this.readable = fs.createReadStream(file, { highWaterMark: 1024 * 256 });
             this.setProto();

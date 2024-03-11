@@ -61,10 +61,8 @@ export class Converter {
             this._text(this.content);
         } else if (Array.isArray(this.content)) {
             await Promise.allSettled(this.content.map(item => this._convert(item, contactable)));
-            await contactable.uploadImages(this.imgs);
         } else {
             await this._convert(this.content, contactable);
-            await contactable.uploadImages(this.imgs);
         }
 
         if (!this.elems.length && !this.rich[4]) {
@@ -310,9 +308,20 @@ export class Converter {
 
     private async image(elem: ImageElem, contactable: Contactable) {
         const img = new Image(elem, contactable.dm, contactable.c.cacheDir);
-        const proto = await img.getProto();
+        await contactable.uploadImages([img]);
+
+        const compat = img.compatElems;
+        const msgInfo = img.commonElems;
+
         this.imgs.push(img);
-        this.elems.push(contactable.dm ? { 4: proto } : { 8: proto });
+        this.elems.push(contactable.dm ? { 4: compat } : { 8: compat });
+        this.elems.push({
+            53: {
+                1: 48,
+                2: msgInfo,
+                3: 10,
+            },
+        });
         this.brief += '[图片]';
     }
 

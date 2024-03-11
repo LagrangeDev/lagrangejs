@@ -178,6 +178,22 @@ export class Client extends BaseClient {
         return cookies;
     }
 
+    async fetchHighwayTicket() {
+        const body = pb.encode({
+            1281: {
+                1: this.uin,
+                2: 0,
+                3: 16,
+                4: 1,
+                6: 3,
+                7: 5,
+            },
+        });
+        const payload = await this.sendUni('HttpConn.0x6ff_501', body);
+        const rsp = pb.decode(payload)[1281];
+        return rsp[1].toBuffer();
+    }
+
     sendOidbSvcTrpcTcp(cmd: number, subCmd: number, buffer: Uint8Array, isUid = false, isAfter = false) {
         const command = `OidbSvcTrpcTcp.0x${cmd.toString(16)}_${subCmd}`;
 

@@ -9,8 +9,8 @@ import { md5, NOOP, BUF0, int32ip2str } from '../common';
 type Client = import('../client').Client;
 
 export enum CmdID {
-    DmImage = 1,
-    GroupImage = 2,
+    DmImage = 1003,
+    GroupImage = 1004,
     SelfPortrait = 5,
     ShortVideo = 25,
     DmPtt = 26,
