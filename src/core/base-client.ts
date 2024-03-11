@@ -19,7 +19,7 @@ import * as pb from './protobuf';
 import { Encodable } from './protobuf';
 import * as tlv from './tlv';
 import { getRawTlv } from './tlv';
-import { LoginErrorCode } from '@/errors';
+import { LoginErrorCode } from '../errors';
 
 import Network from './network';
 import Ecdh from './ecdh';
