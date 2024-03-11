@@ -13,7 +13,7 @@ if (!isMainThread && parentPort) {
         const data = val.data;
         const port = val.port;
         const input = data.input || Buffer.alloc(0);
-        if (data.file) fs.unlink(data.file, () => { });
+        if (data.file) fs.unlink(data.file, () => {});
         switch (data.type) {
             case 'encode':
                 silkEncode(input, data.sampleRate).then(ret => {

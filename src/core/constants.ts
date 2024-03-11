@@ -15,7 +15,7 @@ export const BUF4 = Buffer.alloc(4);
 export const BUF16 = Buffer.alloc(16);
 
 /** no operation */
-export const NOOP = () => { };
+export const NOOP = () => {};
 
 /** promisified unzip */
 export const unzip = promisify(zlib.unzip);

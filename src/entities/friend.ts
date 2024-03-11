@@ -1,10 +1,10 @@
 import { User } from './user';
-import { drop, ErrorCode } from '../errors';
-import { FileElem, Quotable, Sendable } from '../message/elements';
-import { MessageRet } from '../events/message';
-import { Client } from '../client';
-import * as pb from '../core/protobuf';
-import { hide, lock } from '../core/constants';
+import { drop, ErrorCode } from '@/errors';
+import { FileElem, Quotable, Sendable } from '@/message/elements';
+import { MessageRet } from '@/events/message';
+import { Client } from '@';
+import * as pb from '@/core/protobuf';
+import { hide, lock } from '@/core/constants';
 const friendCache: WeakMap<Friend.Info, Friend> = new WeakMap<Friend.Info, Friend>();
 export class Friend extends User {
     protected constructor(c: Client, uin: number) {

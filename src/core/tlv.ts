@@ -1,4 +1,4 @@
-import { md5, BUF0 } from './constants';
+import { md5 } from './constants';
 
 import Writer from './writer';
 

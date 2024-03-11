@@ -51,7 +51,7 @@ export class Converter {
     /** 预览文字 */
     brief = '';
 
-    public constructor(private content: Sendable) { }
+    public constructor(private content: Sendable) {}
 
     async convert(contactable: Contactable) {
         if (typeof this.content === 'string') {
@@ -313,7 +313,7 @@ export class Converter {
         this.brief += '[图片]';
     }
 
-    private async reply(elem: ReplyElem) { }
+    private async reply(elem: ReplyElem) {}
 
     private async record(elem: RecordElem) {
         this.brief += '[语音]';
@@ -328,7 +328,10 @@ export class Converter {
     private json(elem: JsonElem) {
         this.elems.push({
             51: {
-                1: Buffer.concat([BUF1, deflateSync(typeof elem.data === 'string' ? elem.data : JSON.stringify(elem.data))]),
+                1: Buffer.concat([
+                    BUF1,
+                    deflateSync(typeof elem.data === 'string' ? elem.data : JSON.stringify(elem.data)),
+                ]),
             },
         });
         this.brief += '[json消息]';

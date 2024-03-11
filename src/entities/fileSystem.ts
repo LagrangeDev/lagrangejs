@@ -1,13 +1,13 @@
 import { Group } from './group';
 import * as pb from '../core/protobuf';
-import { drop, ErrorCode } from '../errors';
+import { drop, ErrorCode } from '@/errors';
 import { randomBytes } from 'crypto';
 import * as common from '../common';
 import fs from 'fs';
 import path from 'path';
-import { highwayUpload } from '../core/highway';
+import { highwayUpload } from '@/core/highway';
 import { Readable } from 'stream';
-import { FileElem } from '../message/elements';
+import { FileElem } from '@/message/elements';
 
 /** 群文件/目录共通属性 */
 export interface GfsBaseStat {
@@ -57,7 +57,7 @@ export class FileSystem {
     get gid() {
         return this.group.gid;
     }
-    constructor(private group: Group) { }
+    constructor(private group: Group) {}
     async df() {
         const [a, b] = await Promise.all([
             (async () => {
@@ -304,7 +304,12 @@ export class FileSystem {
      * @param callback 监控上传进度的回调函数，拥有一个"百分比进度"的参数
      * @returns 上传的文件属性
      */
-    async upload(file: string | Buffer | Uint8Array, pid = '/', name?: string, callback?: (percentage: string) => void) {
+    async upload(
+        file: string | Buffer | Uint8Array,
+        pid = '/',
+        name?: string,
+        callback?: (percentage: string) => void,
+    ) {
         let size, md5, sha1;
         if (file instanceof Uint8Array) {
             if (!Buffer.isBuffer(file)) file = Buffer.from(file);

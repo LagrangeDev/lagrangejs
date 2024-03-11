@@ -111,16 +111,16 @@ export interface MessageElemMap {
         id: string;
     };
     forward:
-    | {
-        m_resid: string;
-        m_fileName: string;
-        message: never;
-    }
-    | {
-        m_resid?: never;
-        m_fileName?: never;
-        message: Forwardable | Forwardable[];
-    };
+        | {
+              m_resid: string;
+              m_fileName: string;
+              message: never;
+          }
+        | {
+              m_resid?: never;
+              m_fileName?: never;
+              message: Forwardable | Forwardable[];
+          };
 }
 
 /** 可引用回复的消息 */
@@ -176,16 +176,16 @@ export type Sendable =
     | RepeatableCombineElem
     | RepeatableCombineElem[] // 可重复组合的消息元素
     | WithReply<
-        | BFaceElem // 原创表情消息元素
-        | ForwardElem // 转发消息元素
-        | PokeElem // 戳一戳消息元素
-        | DiceElem // 掷骰子消息元素
-        | VideoElem // 视频消息元素
-        | RecordElem // 语音消息元素
-        | FileElem // 文件消息元素
-        | XmlElem // Xml消息元素
-        | MusicElem // 音乐消息元素
-        // | AppElem // 应用消息元素
-        | JsonElem // Json消息元素
-        | RpsElem // 猜拳消息元素
-    >; // 带回复的消息元素
+          | BFaceElem // 原创表情消息元素
+          | ForwardElem // 转发消息元素
+          | PokeElem // 戳一戳消息元素
+          | DiceElem // 掷骰子消息元素
+          | VideoElem // 视频消息元素
+          | RecordElem // 语音消息元素
+          | FileElem // 文件消息元素
+          | XmlElem // Xml消息元素
+          | MusicElem // 音乐消息元素
+          // | AppElem // 应用消息元素
+          | JsonElem // Json消息元素
+          | RpsElem // 猜拳消息元素
+      >; // 带回复的消息元素

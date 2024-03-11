@@ -1,7 +1,7 @@
-import { Sendable } from '../message/elements';
-import { GroupMessage, PrivateMessage, TempMessage } from '../message/message';
-import { pb } from '../core';
-import { Client } from '../client';
+import { Sendable } from '@/message/elements';
+import { GroupMessage, PrivateMessage, TempMessage } from '@/message/message';
+import { pb } from '@/core';
+import { Client } from '@';
 
 export interface MessageRet {
     seq: number;

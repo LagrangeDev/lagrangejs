@@ -1,12 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as pb from '../core/protobuf';
+import * as pb from '@/core/protobuf';
 import { PNG } from 'pngjs';
-import { Client } from '../client';
+import { Client } from '@/client';
 import { handleGroupMsg, handlePrivateMsg, handleTempMsg } from './msgpush';
 import { loadFriendList, loadGroupList } from './internal';
-import { Group } from '../entities/group';
-import { GroupAdminChangeNotice } from '../events/notice';
+import { Group } from '@/entities/group';
+import { GroupAdminChangeNotice } from '@/events/notice';
 
 async function msgPushListener(this: Client, payload: Buffer) {
     const proto = pb.decode(payload);
@@ -98,8 +98,8 @@ function logQrcode(img: Buffer) {
 
 async function onlineListener(this: Client, token: Buffer, nickname: string, gender: number, age: number) {
     this.logger.mark(`Welcome, ${nickname} ! 正在加载资源...`);
-    await loadFriendList.call(this) // 好友列表
-    await loadGroupList.call(this) // 群列表
+    await loadFriendList.call(this); // 好友列表
+    await loadGroupList.call(this); // 群列表
 
     if (this.config.cacheMember) {
         for (const [gid] of this.groupList) {
@@ -115,7 +115,7 @@ function qrcodeListener(this: Client, image: Buffer) {
     fs.writeFile(file, image, () => {
         try {
             logQrcode(image);
-        } catch { }
+        } catch {}
         this.logger.mark('二维码图片已保存到：' + file);
         this.em('system.login.qrcode', { image });
     });
@@ -139,7 +139,7 @@ function kickoffListener(this: Client, message: string) {
 function loginErrorListener(this: Client, code: number, message: string) {
     if (code > 0) {
         this.logger.error(message);
-        this.em("system.login.error", { code, message });
+        this.em('system.login.error', { code, message });
     }
 }
 
@@ -150,5 +150,5 @@ export function bindInternalListeners(this: Client) {
     this.on('internal.qrcode', qrcodeListener);
     this.on('internal.slider', sliderListener);
     this.on('internal.sso', eventsListener);
-    this.on("internal.error.login", loginErrorListener);
+    this.on('internal.error.login', loginErrorListener);
 }

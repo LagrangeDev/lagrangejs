@@ -1,4 +1,4 @@
-import { LoginErrorCode } from '../errors';
+import { LoginErrorCode } from '@/errors';
 import { GroupMessageEvent, PrivateMessageEvent } from './message';
 
 export interface EventMap<T = any> {

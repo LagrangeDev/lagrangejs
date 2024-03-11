@@ -1,10 +1,10 @@
 import { Contactable } from './contactable';
-import { Client } from '../client';
-import { lock } from '../core/constants';
-import { Quotable, RecordElem, Sendable } from '../message/elements';
-import { MessageRet } from '../events/message';
-import { drop } from '../errors';
-import * as pb from '../core/protobuf';
+import { Client } from '@';
+import { lock } from '@/core/constants';
+import { Quotable, RecordElem, Sendable } from '@/message/elements';
+import { MessageRet } from '@/events/message';
+import { drop } from '@/errors';
+import * as pb from '@/core/protobuf';
 import { GroupMember } from './groupMember';
 import { FileSystem } from './fileSystem';
 const groupCacheMap: WeakMap<Group.Info, Group> = new WeakMap<Group.Info, Group>();
@@ -83,12 +83,12 @@ export class Group extends Contactable {
      * 上传语音
      * @param elem
      */
-    async uploadRecord(elem: RecordElem) { }
+    async uploadRecord(elem: RecordElem) {}
 
     /**
      * 解析语音内容
      */
-    async downloadRecord() { }
+    async downloadRecord() {}
     async remark(targetRemark: string) {
         const body = pb.encode({
             1: {

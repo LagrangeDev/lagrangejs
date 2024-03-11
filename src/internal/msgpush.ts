@@ -1,6 +1,6 @@
-import { Client } from '../client';
-import { pb } from '../core';
-import { GroupMessageEvent, PrivateMessageEvent, TempMessageEvent } from '../events/message';
+import { Client } from '@/client';
+import { pb } from '@/core';
+import { GroupMessageEvent, PrivateMessageEvent, TempMessageEvent } from '@/events/message';
 
 export function handlePrivateMsg(this: Client, proto: pb.Proto) {
     this.statistics.recvMsgCount++;

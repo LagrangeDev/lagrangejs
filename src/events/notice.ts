@@ -1,12 +1,12 @@
-import { Client } from '../client';
-import { pb } from '../core';
+import { Client } from '@';
+import { pb } from '@/core';
 
 export interface NoticeEvent {
     operator?: number;
 }
 
 export class GroupMemberIncreaseEvent implements NoticeEvent {
-    constructor(c: Client, pb: pb.Proto) { }
+    constructor(c: Client, pb: pb.Proto) {}
 }
 
 export class GroupAdminChangeNotice implements NoticeEvent {

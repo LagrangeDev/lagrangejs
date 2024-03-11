@@ -3,7 +3,7 @@ import * as net from 'net';
 import { randomBytes } from 'crypto';
 import http from 'http';
 import { pb, ApiRejection } from '../core';
-import { ErrorCode } from '../errors';
+import { ErrorCode } from '@/errors';
 import { md5, NOOP, BUF0, int32ip2str } from '../common';
 
 type Client = import('../client').Client;

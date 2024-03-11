@@ -14,10 +14,11 @@ import {
     IS_WIN,
     MAX_UPLOAD_SIZE,
     DownloadTransform,
-    sha1Stream, sha1
+    sha1Stream,
+    sha1,
 } from '../common';
 import { ImageElem } from './elements';
-import * as pb from "@/core/protobuf"
+import * as pb from '@/core/protobuf';
 
 const TYPE: { [ext: string]: number } = {
     jpg: 1000,
@@ -139,10 +140,10 @@ export class Image {
     private parseFileParam(file: string) {
         const { md5, sha1, size, width, height, ext } = parseImageFileParam(file);
         const md5Buf = Buffer.from(md5, 'hex');
-        const sha1Buf = Buffer.from(sha1, "hex");
+        const sha1Buf = Buffer.from(sha1, 'hex');
         if (md5Buf.length !== 16 || sha1Buf.length !== 20) throw new Error('bad file param: ' + file);
         this.md5 = md5Buf;
-        this.sha1 = sha1Buf
+        this.sha1 = sha1Buf;
 
         size > 0 && (this.size = size);
         this.width = width;
@@ -207,11 +208,11 @@ export class Image {
         ).data as Readable;
         await this.fromReadable(readable, timeout);
         this.cachefile &&
-        fs.writeFile(
-            this.cachefile,
-            buildImageFileParam(this.md5.toString('hex'), this.size, this.width, this.height, this.type),
-            NOOP,
-        );
+            fs.writeFile(
+                this.cachefile,
+                buildImageFileParam(this.md5.toString('hex'), this.size, this.width, this.height, this.type),
+                NOOP,
+            );
     }
 
     private async fromLocal(file: string) {

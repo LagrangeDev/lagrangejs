@@ -85,7 +85,7 @@ export function parseFunString(buf: Buffer) {
             for (const v of arr) {
                 if (v[2]) res += String(v[2]);
             }
-        } catch { }
+        } catch {}
         return res;
     } else {
         return String(buf);

@@ -10,7 +10,7 @@ import { bindInternalListeners } from './internal/listener';
 import { Friend } from './entities/friend';
 import { Group } from './entities/group';
 import { GroupMember } from './entities/groupMember';
-import { LoginErrorCode } from "./errors";
+import { LoginErrorCode } from './errors';
 
 export interface Client extends BaseClient {
     on<T extends keyof EventMap>(event: T, listener: EventMap<this>[T]): this;
@@ -191,10 +191,10 @@ export class Client extends BaseClient {
             4: buffer,
             7: isAfter
                 ? {
-                    1: 0,
-                    2: [],
-                    3: this.appInfo.subAppId,
-                }
+                      1: 0,
+                      2: [],
+                      3: this.appInfo.subAppId,
+                  }
                 : null,
             12: isUid,
         });

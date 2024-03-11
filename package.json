@@ -39,7 +39,6 @@
         "eslint-config-prettier": "latest",
         "eslint-plugin-prettier": "latest",
         "prettier": "^3.2.5",
-        "protobufjs": "^7.2.6",
         "ts-node-dev": "^2.0.0",
         "tsc-alias": "^1.8.8",
         "tsconfig-paths": "^4.2.0",

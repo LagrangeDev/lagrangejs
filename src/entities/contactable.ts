@@ -1,17 +1,17 @@
-import { BUF0, gzip, lock, randomInt, timestamp, unzip } from '../core/constants';
-import { Client } from '../client';
-import { Forwardable, ImageElem, JsonElem, Quotable, Sendable } from '../message/elements';
-import { drop, ErrorCode } from '../errors';
-import { Converter } from '../message/converter';
-import * as pb from '../core/protobuf/index';
+import { BUF0, gzip, lock, randomInt, timestamp, unzip } from '@/core/constants';
+import { Client } from '@/client';
+import { Forwardable, ImageElem, JsonElem, Quotable, Sendable } from '@/message/elements';
+import { drop, ErrorCode } from '@/errors';
+import { Converter } from '@/message/converter';
+import * as pb from '@/core/protobuf/index';
 import { randomBytes } from 'crypto';
-import { EXT, Image } from '../message/image';
-import { escapeXml, uuid } from '../common';
-import { ForwardMessage } from '../message/message';
-import { LogLevel } from '../core';
+import { EXT, Image } from '@/message/image';
+import { escapeXml, uuid } from '@/common';
+import { ForwardMessage } from '@/message/message';
+import { LogLevel } from '@/core';
 import path from 'path';
-import { CmdID, highwayUpload } from '../core/highway';
-import { Encodable } from "../core/protobuf/index";
+import { CmdID, highwayUpload } from '@/core/highway';
+import { Encodable } from '@/core/protobuf';
 
 export abstract class Contactable {
     public uin?: number;
@@ -72,9 +72,9 @@ export abstract class Contactable {
                         },
                         8: forwardItem.group_id
                             ? {
-                                1: forwardItem.group_id,
-                                4: this.c.memberList.get(forwardItem.group_id!)?.get(forwardItem.user_id)?.card || '',
-                            }
+                                  1: forwardItem.group_id,
+                                  4: this.c.memberList.get(forwardItem.group_id!)?.get(forwardItem.user_id)?.card || '',
+                              }
                             : null,
                     },
                     2: {
@@ -165,7 +165,8 @@ export abstract class Contactable {
         }
         const res1 = (await Promise.allSettled(tasks)) as PromiseRejectedResult[];
         for (let i = 0; i < res1.length; i++) {
-            if (res1[i].status === 'rejected') this.c.logger.warn(`图片${i + 1}失败, reason: ` + res1[i].reason?.message);
+            if (res1[i].status === 'rejected')
+                this.c.logger.warn(`图片${i + 1}失败, reason: ` + res1[i].reason?.message);
         }
         let n = 0;
         while (imgs.length > n) {
@@ -239,7 +240,10 @@ export abstract class Contactable {
         const payload = await this.c.sendUni('trpc.group.long_msg_interface.MsgService.SsoSendLongMsg', body);
         const rsp = pb.decode(payload)?.[2];
         if (!rsp?.[3])
-            drop(rsp?.[1], rsp?.[2]?.toString() || 'unknown trpc.group.long_msg_interface.MsgService.SsoSendLongMsg error');
+            drop(
+                rsp?.[1],
+                rsp?.[2]?.toString() || 'unknown trpc.group.long_msg_interface.MsgService.SsoSendLongMsg error',
+            );
         return rsp[3].toString() as string;
     }
     /** 下载合并转发 */
@@ -297,9 +301,7 @@ export abstract class Contactable {
         return pb.decode(payload)[2] as pb.Proto | pb.Proto[];
     }
 
-    private async _requestUploadImage(imgs: Image[]) {
-
-    }
+    private async _requestUploadImage(imgs: Image[]) {}
 
     private async _requestUploadGroupImage(imgs: Image[]) {
         const proto: Encodable = {
@@ -309,9 +311,9 @@ export abstract class Contactable {
                     102: 2,
                     103: 1,
                     200: 2,
-                    202: { 1: this.gid }
+                    202: { 1: this.gid },
                 },
-                3: { 1: 2 }
+                3: { 1: 2 },
             },
             2: {
                 2: true,
@@ -320,41 +322,41 @@ export abstract class Contactable {
                 5: 2,
                 6: {
                     1: {
-                        12: Buffer.from("0800180020004a00500062009201009a0100aa010c080012001800200028003a00", "hex"),
+                        12: Buffer.from('0800180020004a00500062009201009a0100aa010c080012001800200028003a00', 'hex'),
                     },
                     2: { 3: BUF0 },
                     3: {
                         11: BUF0,
                         12: BUF0,
-                        13: BUF0
-                    }
+                        13: BUF0,
+                    },
                 },
                 7: 0,
-                8: false
-            }
-        }
+                8: false,
+            },
+        };
 
         const files = [];
         for (const img of imgs) {
             const file = {
                 1: {
                     1: img.size,
-                    2: img.md5.toString("hex"),
-                    3: img.sha1.toString("hex"),
-                    4: img.md5.toString("hex") + EXT[img.type],
+                    2: img.md5.toString('hex'),
+                    3: img.sha1.toString('hex'),
+                    4: img.md5.toString('hex') + EXT[img.type],
                     5: {
                         1: 1,
                         2: 1001,
                         3: 0,
-                        4: 0
+                        4: 0,
                     },
                     6: img.width,
                     7: img.height,
                     8: 0,
-                    9: 1
+                    9: 1,
                 },
-                2: 0
-            }
+                2: 0,
+            };
             files.push(file);
         }
         proto[2][1] = files;

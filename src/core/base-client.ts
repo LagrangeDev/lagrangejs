@@ -19,7 +19,7 @@ import * as pb from './protobuf';
 import { Encodable } from './protobuf';
 import * as tlv from './tlv';
 import { getRawTlv } from './tlv';
-import { LoginErrorCode } from '../errors';
+import { LoginErrorCode } from '@/errors';
 
 import Network from './network';
 import Ecdh from './ecdh';
@@ -183,12 +183,20 @@ export class BaseClient extends EventEmitter {
             this.statistics.remoteIp = '';
             this.statistics.remotePort = 0;
             this[NET].remoteAddress &&
-                this.emit('internal.verbose', `${this[NET].remoteAddress}:${this[NET].remotePort} closed`, LogLevel.Mark);
+                this.emit(
+                    'internal.verbose',
+                    `${this[NET].remoteAddress}:${this[NET].remotePort} closed`,
+                    LogLevel.Mark,
+                );
         });
         this[NET].on('connect2', () => {
             this.statistics.remoteIp = this[NET].remoteAddress as string;
             this.statistics.remotePort = this[NET].remotePort as number;
-            this.emit('internal.verbose', `${this[NET].remoteAddress}:${this[NET].remotePort} connected`, LogLevel.Mark);
+            this.emit(
+                'internal.verbose',
+                `${this[NET].remoteAddress}:${this[NET].remotePort} connected`,
+                LogLevel.Mark,
+            );
         });
         this[NET].on('packet', packetListener.bind(this));
         this[NET].on('lost', lostListener.bind(this));
@@ -303,7 +311,7 @@ export class BaseClient extends EventEmitter {
                 tgtgt = t[0x1e];
                 this.sig.tgtgt = tgtgt;
             }
-        } catch { }
+        } catch {}
         return { retcode, uin, t106, t16a, tgtgt };
     }
 
@@ -422,8 +430,8 @@ export class BaseClient extends EventEmitter {
         const resp = decodeNTLoginResponse.call(this, response);
 
         if (resp === LoginErrorCode.CaptchaVerify) {
-            if (this.sig.captchaUrl && this.sig.aid) this.emit("internal.slider", this.sig.captchaUrl);
-            else this.emit("internal.error.login", "[登陆失败]未知格式的验证码")
+            if (this.sig.captchaUrl && this.sig.aid) this.emit('internal.slider', this.sig.captchaUrl);
+            else this.emit('internal.error.login', '[登陆失败]未知格式的验证码');
         }
 
         return resp;
@@ -774,11 +782,11 @@ function buildNTLoginPacketBody(this: BaseClient, credential: Buffer) {
         proto[2][2] = {
             1: this.sig.ticket,
             2: this.sig.randStr,
-            3: this.sig.aid
-        }
+            3: this.sig.aid,
+        };
     }
     if (this.sig.cookies !== '') {
-        proto[1][5] = { 1: this.sig.cookies }
+        proto[1][5] = { 1: this.sig.cookies };
     }
 
     return pb.encode({
@@ -812,11 +820,11 @@ function decodeNTLoginResponse(this: BaseClient, encrypted: Buffer): LoginErrorC
         const tag = inner[1]?.[4]?.[2]?.toString();
         const message = inner[1]?.[4]?.[3]?.toString();
         if (tag && message) {
-            this.emit("internal.error.login", inner[1][4][1] ?? 0, `[${tag}]${message}`)
+            this.emit('internal.error.login', inner[1][4][1] ?? 0, `[${tag}]${message}`);
         }
 
         if (this.sig.captchaUrl) {
-            this.sig.aid = this.sig.captchaUrl.split("&sid=")[1].split("&")[0];
+            this.sig.aid = this.sig.captchaUrl.split('&sid=')[1].split('&')[0];
         }
     }
 
