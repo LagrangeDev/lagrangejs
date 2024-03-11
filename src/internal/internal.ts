@@ -1,5 +1,5 @@
-import * as pb from '@/core/protobuf';
-import { Client } from '@/client';
+import * as pb from '../core/protobuf';
+import { Client } from '../client';
 import { randomBytes } from 'crypto';
 
 export async function loadFriendList(this: Client) {

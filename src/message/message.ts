@@ -1,8 +1,8 @@
 import { Forwardable, Quotable, Sendable, FileElem } from './elements';
 import { parse, Parser } from './parser';
-import * as pb from '@/core/protobuf';
-import { lock } from '@/core/constants';
-import { parseFunString, GroupRole } from '@/common';
+import * as pb from '../core/protobuf';
+import { lock } from '../core/constants';
+import { parseFunString, GroupRole } from '../common';
 
 export function rand2uuid(rand: number) {
     return (16777216n << 32n) | BigInt(rand);

@@ -1,5 +1,5 @@
 import { unzipSync } from 'zlib';
-import { pb } from '@/core';
+import { pb } from '../core';
 import * as T from './elements';
 import { facemap } from './face';
 import { buildImageFileParam } from './image';

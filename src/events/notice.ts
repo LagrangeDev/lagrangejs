@@ -1,5 +1,5 @@
-import { Client } from '@';
-import { pb } from '@/core';
+import { Client } from '..';
+import { pb } from '../core';
 
 export interface NoticeEvent {
     operator?: number;

@@ -1,13 +1,13 @@
 import { Group } from './group';
 import * as pb from '../core/protobuf';
-import { drop, ErrorCode } from '@/errors';
+import { drop, ErrorCode } from '../errors';
 import { randomBytes } from 'crypto';
 import * as common from '../common';
 import fs from 'fs';
 import path from 'path';
-import { highwayUpload } from '@/core/highway';
+import { highwayUpload } from '../core/highway';
 import { Readable } from 'stream';
-import { FileElem } from '@/message/elements';
+import { FileElem } from '../message/elements';
 
 /** 群文件/目录共通属性 */
 export interface GfsBaseStat {

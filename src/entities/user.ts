@@ -1,6 +1,6 @@
 import { Contactable } from './contactable';
-import { Client } from '@';
-import { lock } from '@/core/constants';
+import { Client } from '..';
+import { lock } from '../core/constants';
 import * as pb from '../core/protobuf';
 
 export class User extends Contactable {
