@@ -17,7 +17,7 @@ import {
     VideoElem,
     XmlElem,
     MarkdownElem,
-    ButtonElem,
+    KeyboardElem,
     RawElem,
 } from './elements';
 import { FACE_OLD_BUF, facemap } from './face';
@@ -396,13 +396,13 @@ export class Converter {
         this.brief += '[markdown消息]';
     }
 
-    private button(elem: ButtonElem) {
-        const { content } = elem;
+    private button(elem: KeyboardElem) {
+        const { appid, rows } = elem;
         const _content = {
             1: {
-                1: content.rows.map(row => {
+                1: rows.map(buttons => {
                     return {
-                        1: row.buttons.map(button => {
+                        1: buttons.map(button => {
                             return {
                                 1: button.id,
                                 2: {
@@ -426,7 +426,7 @@ export class Converter {
                         }),
                     };
                 }),
-                2: content.appid,
+                2: appid,
             },
         };
         this.#long_elems.push({

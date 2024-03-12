@@ -125,15 +125,11 @@ export interface MessageElemMap {
     markdown: {
         content: string;
     };
-    button: {
-        content: {
-            /** 机器人appid */
-            appid: number;
-            /** rows 数组的每个元素表示每一行按钮 */
-            rows: {
-                buttons: Button[];
-            }[];
-        };
+    keyboard: {
+        /** 机器人appid */
+        appid: number;
+        /** rows 数组的每个元素表示每一行按钮 */
+        rows: Button[][];
     };
     raw: {
         data: string | pb.Encodable | pb.Encodable[];
@@ -172,10 +168,6 @@ export interface Button {
     设置为 1 时 ，点击按钮自动唤起启手Q选图器，其他值暂无效果。
     （仅支持手机端版本 8983+ 的单聊场景，桌面端不支持） */
         anchor?: number;
-        /**【已弃用】可操作点击的次数，默认不限 */
-        click_limit?: number;
-        /** 【已弃用】指令按钮可用，弹出子频道选择器，默认 false */
-        at_bot_show_channel_list?: boolean;
         /** 客户端不支持本action的时候，弹出的toast文案 */
         unsupport_tips: string;
     };
@@ -224,11 +216,11 @@ export type MusicElem = MessageElem<'music'>;
 export type ReplyElem = MessageElem<'reply'>;
 export type ForwardElem = MessageElem<'forward'>;
 export type MarkdownElem = MessageElem<'markdown'>;
-export type ButtonElem = MessageElem<'button'>;
+export type KeyboardElem = MessageElem<'keyboard'>;
 export type RawElem = MessageElem<'raw'>;
 
 // 重复组合的消息元素
-type RepeatableCombineElem = TextElem | FaceElem | ImageElem | AtElem | MarkdownElem | ButtonElem | RawElem;
+type RepeatableCombineElem = TextElem | FaceElem | ImageElem | AtElem | MarkdownElem | KeyboardElem | RawElem;
 // 带回复的消息元素
 type WithReply<T extends MessageElem> = T | [T] | [ReplyElem, T] | [ReplyElem, ...RepeatableCombineElem[]];
 // 可发送的消息元素

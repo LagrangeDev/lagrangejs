@@ -145,10 +145,13 @@ export class Client extends BaseClient {
             this.token.PasswordMd5 = md5pass.toString('hex');
         }
 
-        if (this.token.Session.TempPassword) try {
-            const code = await this.tokenLogin(Buffer.from(this.token.Session.TempPassword, 'base64')); // EasyLogin
-            if (!code) return code
-        } catch (e) {}
+        if (this.token.Session.TempPassword)
+            try {
+                const code = await this.tokenLogin(Buffer.from(this.token.Session.TempPassword, 'base64')); // EasyLogin
+                if (!code) return code;
+            } catch (e) {
+                /* empty */
+            }
 
         if (this.token.PasswordMd5 && this.token.Uid) {
             // 检测Uid的目的是确保之前登陆过
