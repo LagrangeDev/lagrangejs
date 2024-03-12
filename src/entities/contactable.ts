@@ -230,6 +230,58 @@ export abstract class Contactable {
             .finally(img.deleteTmpFile.bind(img));
     }
 
+    async _uploadLongMsg(elems: pb.Encodable | pb.Encodable[]) {
+        const compressed = await gzip(
+            pb.encode({
+                2: {
+                    1: 'MultiMsg',
+                    2: {
+                        1: {
+                            1: {
+                                // res head
+                                2: this.c.uid,
+                                6: this.dm ? this.c.uid : this.uid,
+                                7: {
+                                    6: this.dm ? this.c.friendList.get(this.target)?.nickname : '',
+                                },
+                                8: this.dm
+                                    ? null
+                                    : {
+                                          1: this.target,
+                                          4: '',
+                                      },
+                            },
+                            2: {
+                                // res content
+                                1: this.dm ? 529 : 82, // type
+                                2: this.dm ? 4 : null, // subType
+                                3: this.dm ? 4 : null, // divSeq
+                                4: randomInt(100000000, 2147483647), // msg id
+                                5: randomInt(1000000, 9999999), // seq
+                                6: timestamp(), // time
+                                7: 1,
+                                8: 0,
+                                9: 0,
+                                15: {
+                                    // forwarder
+                                    3: this.dm ? 2 : null,
+                                    4: randomBytes(32).toString('base64'),
+                                    5: `https://q1.qlogo.cn/g?b=qq&nk=${this.dm ? this.target : this.c.uin}&s=640`,
+                                },
+                            },
+                            3: {
+                                1: {
+                                    2: elems,
+                                    4: null,
+                                },
+                            },
+                        },
+                    },
+                },
+            }),
+        );
+        return await this._uploadMultiMsg(compressed);
+    }
     /** 上传合并转发 */
     private async _uploadMultiMsg(compressed: Buffer): Promise<string> {
         const body = pb.encode({
