@@ -70,13 +70,17 @@ export class Converter {
             await this._convert(this.content, contactable);
         }
         // 处理长消息
-        if (this.#long_elems?.length && !this.fake) {
-            this.elems.push({
-                37: {
-                    6: 1,
-                    7: await contactable._uploadLongMsg(this.#long_elems),
-                },
-            });
+        if (this.#long_elems?.length) {
+            if (this.fake) {
+                this.elems.push(...this.#long_elems);
+            } else {
+                this.elems.push({
+                    37: {
+                        6: 1,
+                        7: await contactable._uploadLongMsg(this.#long_elems),
+                    },
+                });
+            }
         }
         if (!this.elems.length && !this.rich[4]) {
             throw new Error('empty message');
