@@ -194,12 +194,10 @@ export abstract class Contactable {
 
     private async _uploadImage(img: Image, rsp: pb.Proto) {
         const j = this.dm ? 1 : 0;
-        if (!img.readable) {
+        if (!img.readable || !rsp[2][1]) {
             img.deleteCacheFile();
             return;
         }
-        const ip = int32ip2str(rsp[2][3][0][1]);
-        const port = rsp[2][3][0][2];
         const ext: Encodable = {
             1: rsp[2][6][1][1][2].toString(),
             2: rsp[2][1]?.toString(),
