@@ -47,6 +47,8 @@ export class Converter {
     is_chain = true;
     imgs: Image[] = [];
     elems: pb.Encodable[] = [];
+    /** 长消息元素，仅内部使用 */
+    #long_elems: pb.Encodable[] = [];
     /** 用于最终发送 */
     rich: pb.Encodable = { 2: this.elems, 4: null };
     /** 长度(字符) */
@@ -64,7 +66,15 @@ export class Converter {
         } else {
             await this._convert(this.content, contactable);
         }
-
+        // 处理长消息
+        if (this.#long_elems?.length) {
+            this.elems.push({
+                37: {
+                    6: 1,
+                    7: await contactable._uploadLongMsg(this.#long_elems),
+                },
+            });
+        }
         if (!this.elems.length && !this.rich[4]) {
             throw new Error('empty message');
         }
@@ -365,72 +375,72 @@ export class Converter {
         throw new Error('暂不支持发送或转发file元素，请调用文件相关API完成该操作');
     }
 
-  private markdown(elem: MarkdownElem) {
-    const { content } = elem
-    this.elems.push({
-      53: {
-        1: 45,
-        2: {
-          1: content
-        },
-        3: 1
-      }
-    })
-    this.brief += "[markdown消息]"
-  }
-
-  private button(elem: ButtonElem) {
-    const { content } = elem
-    const _content = {
-      1: {
-        1: content.rows.map(row => {
-          return {
-            1: row.buttons.map(button => {
-              return {
-                1: button.id,
+    private markdown(elem: MarkdownElem) {
+        const { content } = elem;
+        this.#long_elems.push({
+            53: {
+                1: 45,
                 2: {
-                  1: button.render_data.label,
-                  2: button.render_data.visited_label,
-                  3: button.render_data.style
+                    1: content,
                 },
-                3: {
-                  1: button.action.type,
-                  2: {
-                    1: button.action.permission.type,
-                    2: button.action.permission.specify_role_ids,
-                    3: button.action.permission.specify_user_ids,
-                  },
-                  4: button.action.unsupport_tips,
-                  5: button.action.data,
-                  7: button.action.reply ? 1 : 0,
-                  8: button.action.enter ? 1 : 0
-                }
-              }
-            })
-          }
-        }),
-        2: content.appid
-      }
+                3: 1,
+            },
+        });
+        this.brief += '[markdown消息]';
     }
-    this.elems.push({
-      53: {
-        1: 46,
-        2: _content,
-        3: 1
-      }
-    })
-    this.brief += "[button消息]"
-  }
 
-  private raw(elem: RawElem) {
-    let data = elem.data;
-    if (typeof data === 'string' && data.startsWith("protobuf://")) {
-      data = Buffer.from(data.replace("protobuf://", ""), "base64")
-      this.elems.push(data)
-    } else {
-      if (!Array.isArray(data)) data = [data]
-      this.elems.push(...data)
+    private button(elem: ButtonElem) {
+        const { content } = elem;
+        const _content = {
+            1: {
+                1: content.rows.map(row => {
+                    return {
+                        1: row.buttons.map(button => {
+                            return {
+                                1: button.id,
+                                2: {
+                                    1: button.render_data.label,
+                                    2: button.render_data.visited_label,
+                                    3: button.render_data.style,
+                                },
+                                3: {
+                                    1: button.action.type,
+                                    2: {
+                                        1: button.action.permission.type,
+                                        2: button.action.permission.specify_role_ids,
+                                        3: button.action.permission.specify_user_ids,
+                                    },
+                                    4: button.action.unsupport_tips,
+                                    5: button.action.data,
+                                    7: button.action.reply ? 1 : 0,
+                                    8: button.action.enter ? 1 : 0,
+                                },
+                            };
+                        }),
+                    };
+                }),
+                2: content.appid,
+            },
+        };
+        this.#long_elems.push({
+            53: {
+                1: 46,
+                2: _content,
+                3: 1,
+            },
+        });
+        this.brief += '[button消息]';
     }
-    this.brief += "[原始消息]"
-  }
+
+    private raw(elem: RawElem) {
+        let data = elem.data;
+        if (typeof data === 'string' && data.startsWith('protobuf://')) {
+            data = Buffer.from(data.replace('protobuf://', ''), 'base64');
+            this.elems.push(data);
+        } else if (typeof data === 'object') {
+            if (!Array.isArray(data)) data = [data];
+            this.elems.push(...(data as pb.Encodable[]));
+        }
+        this.brief += '[原始消息]';
+    }
 }
