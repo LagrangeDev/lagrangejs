@@ -1,3 +1,4 @@
+import * as pb from '../core/protobuf';
 export enum MusicPlatform {
     qq = 'qq',
     netease = '163',
@@ -135,7 +136,7 @@ export interface MessageElemMap {
         };
     };
     raw: {
-        data: any;
+        data: string | pb.Encodable | pb.Encodable[];
     };
 }
 

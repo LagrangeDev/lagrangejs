@@ -47,6 +47,8 @@ export class Converter {
     is_chain = true;
     imgs: Image[] = [];
     elems: pb.Encodable[] = [];
+    /** 长消息元素，仅内部使用 */
+    #long_elems: pb.Encodable[] = [];
     /** 用于最终发送 */
     rich: pb.Encodable = { 2: this.elems, 4: null };
     /** 长度(字符) */
@@ -64,7 +66,15 @@ export class Converter {
         } else {
             await this._convert(this.content, contactable);
         }
-
+        // 处理长消息
+        if (this.#long_elems?.length) {
+            this.elems.push({
+                37: {
+                    6: 1,
+                    7: await contactable._uploadLongMsg(this.#long_elems),
+                },
+            });
+        }
         if (!this.elems.length && !this.rich[4]) {
             throw new Error('empty message');
         }
@@ -365,28 +375,21 @@ export class Converter {
         throw new Error('暂不支持发送或转发file元素，请调用文件相关API完成该操作');
     }
 
-    private async markdown(elem: MarkdownElem, contactable: Contactable) {
+    private markdown(elem: MarkdownElem) {
         const { content } = elem;
-        this.elems.push({
-            37: {
-                6: 1,
-                7: await contactable._uploadLongMsg([
-                    {
-                        53: {
-                            1: 45,
-                            2: {
-                                1: content,
-                            },
-                            3: 1,
-                        },
-                    },
-                ]),
+        this.#long_elems.push({
+            53: {
+                1: 45,
+                2: {
+                    1: content,
+                },
+                3: 1,
             },
         });
         this.brief += '[markdown消息]';
     }
 
-    private async button(elem: ButtonElem, contactable: Contactable) {
+    private button(elem: ButtonElem) {
         const { content } = elem;
         const _content = {
             1: {
@@ -419,18 +422,11 @@ export class Converter {
                 2: content.appid,
             },
         };
-        this.elems.push({
-            37: {
-                6: 1,
-                7: await contactable._uploadLongMsg([
-                    {
-                        53: {
-                            1: 46,
-                            2: _content,
-                            3: 1,
-                        },
-                    },
-                ]),
+        this.#long_elems.push({
+            53: {
+                1: 46,
+                2: _content,
+                3: 1,
             },
         });
         this.brief += '[button消息]';
@@ -441,9 +437,9 @@ export class Converter {
         if (typeof data === 'string' && data.startsWith('protobuf://')) {
             data = Buffer.from(data.replace('protobuf://', ''), 'base64');
             this.elems.push(data);
-        } else {
+        } else if (typeof data === 'object') {
             if (!Array.isArray(data)) data = [data];
-            this.elems.push(...data);
+            this.elems.push(...(data as pb.Encodable[]));
         }
         this.brief += '[原始消息]';
     }
