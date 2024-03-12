@@ -13,10 +13,8 @@ client.login("2006wxjj");
 client.on("system.login.slider", (event) => {
     console.log(event.url);
     process.stdin.once("data", (input) => {
-        const raw = Buffer.from(input).toString().replace('\n', '');
-        const ticket = raw.split("@")[0];
-        const randStr = "@" + raw.split("@")[1];
-
+        const raw = Buffer.from(input).toString().replace(/\n/g, '');
+        const [ticket,randStr]=raw.split('@')
         client.submitCaptcha(ticket, randStr);
     })
 })

@@ -396,7 +396,7 @@ export class Converter {
         this.brief += '[markdown消息]';
     }
 
-    private button(elem: KeyboardElem) {
+    private keyboard(elem: KeyboardElem) {
         const { appid, rows } = elem;
         const _content = {
             1: {
