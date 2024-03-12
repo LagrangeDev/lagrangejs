@@ -56,7 +56,10 @@ export class Converter {
     /** 预览文字 */
     brief = '';
 
-    public constructor(private content: Sendable) {}
+    public constructor(
+        private content: Sendable,
+        private fake?: boolean,
+    ) {}
 
     async convert(contactable: Contactable) {
         if (typeof this.content === 'string') {
@@ -67,7 +70,7 @@ export class Converter {
             await this._convert(this.content, contactable);
         }
         // 处理长消息
-        if (this.#long_elems?.length) {
+        if (this.#long_elems?.length && !this.fake) {
             this.elems.push({
                 37: {
                     6: 1,

@@ -58,7 +58,7 @@ export abstract class Contactable {
      */
     async makeForwardMsg(msglist: Forwardable[] | Forwardable): Promise<JsonElem> {
         const _makeFake = async (forwardItem: Forwardable): Promise<[Uint8Array, string | undefined, string]> => {
-            const converter = await new Converter(forwardItem.message).convert(this);
+            const converter = await new Converter(forwardItem.message, true).convert(this);
             return [
                 pb.encode({
                     1: {
