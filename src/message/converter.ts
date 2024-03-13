@@ -150,17 +150,18 @@ export class Converter {
             const info = contactable.gid
                 ? contactable.c.memberList.get(contactable.gid)?.get(qq)
                 : contactable.c.friendList.get(qq);
-            display = text || info?.nickname || '';
+            display = text || info?.nickname || String(qq);
             uid = info?.uid || '';
         }
-        display = '@' + display;
+        if (!display.startsWith("@"))
+          display = '@' + display;
 
         const reserve = pb.encode({
             // 不走有的没的的buffer了
             3: qq === 'all' ? 1 : 2,
             4: 0,
             5: 0,
-            9: uid, // TODO: Uid
+            9: uid,
         });
 
         this.elems.push({
