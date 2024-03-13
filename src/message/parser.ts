@@ -208,6 +208,7 @@ export class Parser {
                     type: 'markdown',
                     content: proto[1]?.toString(),
                 };
+                brief = content = `{markdown}`;
                 break;
             case 46:
                 try {
@@ -249,6 +250,7 @@ export class Parser {
                             return buttons;
                         }),
                     };
+                    brief = content = `{keyboard}`;
                 } catch {
                     return;
                 }

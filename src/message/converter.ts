@@ -141,18 +141,17 @@ export class Converter {
     }
 
     private at(elem: AtElem, contactable: Contactable) {
-        let display;
+        let display: string = '',
+            uid = '';
         const { qq, id, text } = elem;
-
         if (qq === 'all') {
             display = '全体成员';
         } else {
-            display = text || String(qq);
-
-            if (!text) {
-                const member = contactable.c.memberList.get(contactable.gid!)?.get(Number(qq));
-                display = member?.card || member?.nickname || display;
-            }
+            const info = contactable.gid
+                ? contactable.c.memberList.get(contactable.gid)?.get(qq)
+                : contactable.c.friendList.get(qq);
+            display = text || info?.nickname || '';
+            uid = info?.uid || '';
         }
         display = '@' + display;
 
@@ -161,13 +160,16 @@ export class Converter {
             3: qq === 'all' ? 1 : 2,
             4: 0,
             5: 0,
-            9: '', // TODO: Uid
+            9: uid, // TODO: Uid
         });
 
         this.elems.push({
-            1: display,
-            12: reserve,
+            1: {
+                1: display,
+                12: reserve,
+            },
         });
+        this.brief += display;
     }
 
     private face(elem: FaceElem) {
@@ -436,7 +438,7 @@ export class Converter {
                 3: 1,
             },
         });
-        this.brief += '[button消息]';
+        this.brief += '[keyboard消息]';
     }
 
     private raw(elem: RawElem) {

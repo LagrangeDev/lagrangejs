@@ -220,12 +220,11 @@ export type KeyboardElem = MessageElem<'keyboard'>;
 export type RawElem = MessageElem<'raw'>;
 
 // 重复组合的消息元素
-type RepeatableCombineElem = TextElem | FaceElem | ImageElem | AtElem | MarkdownElem | KeyboardElem | RawElem;
+type RepeatableCombineElem = string | TextElem | FaceElem | ImageElem | AtElem | MarkdownElem | KeyboardElem | RawElem;
 // 带回复的消息元素
 type WithReply<T extends MessageElem> = T | [T] | [ReplyElem, T] | [ReplyElem, ...RepeatableCombineElem[]];
 // 可发送的消息元素
 export type Sendable =
-    | string // 文本
     | RepeatableCombineElem
     | RepeatableCombineElem[] // 可重复组合的消息元素
     | WithReply<
