@@ -7,11 +7,11 @@ import { handleGroupMsg, handlePrivateMsg, handleTempMsg } from './msgpush';
 import { loadFriendList, loadGroupList } from './internal';
 import { Group } from '../entities/group';
 import { GroupAdminChangeNotice } from '../events/notice';
+import { GroupInviteRequestEvent, GroupJoinRequestEvent } from '@/events/request';
 
 async function msgPushListener(this: Client, payload: Buffer) {
     const proto = pb.decode(payload);
     this.logger.trace(`recv: MsgPush type: ${proto[1][2][1]}`);
-
     switch (proto[1][2][1]) {
         case 82: // group msg
             handleGroupMsg.call(this, proto[1]);
@@ -24,13 +24,20 @@ async function msgPushListener(this: Client, payload: Buffer) {
         case 141:
             handleTempMsg.call(this, proto[1]);
         case 84: // group request join notice
-        case 525: // group request invite notice
             if (proto[1][3]?.[2]) break;
+            this.em('request.group.join', new GroupJoinRequestEvent(this, proto[1][3][2]));
+            break;
+        case 525: // group request invite notice
+            if (proto[1][3]?.[2] || proto[1][3][2][1] !== 87) break;
+            this.em('request.group.invite', new GroupInviteRequestEvent(this, proto[1][3][2]));
+            break;
         case 87: // group invite notice
             if (proto[1][3]?.[2]) {
+                proto.save('invite join');
                 break;
             }
         case 44: // group admin change
+            console.log(proto[1][3]?.[2]?.toJSON());
             if (proto[1][3]?.[2]) {
                 const event = new GroupAdminChangeNotice(this, proto[1][3][2]);
                 this.em('notice.group.admin_change', event);
@@ -38,12 +45,16 @@ async function msgPushListener(this: Client, payload: Buffer) {
             }
         case 33: // group member increase
         case 34: // group member decrease
+            proto.save('member change');
+            break;
         case 0x210: // friend request
             if (proto[1][2][2] !== 226) break;
         case 0x2dc:
             if (proto[1][2][2] === 17) {
                 // group recall
+                proto.save('group recall');
             } else if (proto[1][2][2] === 12) {
+                proto.save('group mute');
                 // group mute
             }
     }

@@ -26,6 +26,7 @@ export abstract class Message implements Quotable, Forwardable {
     raw_message: string;
     source?: Quotable;
 
+    mentions: number[];
     static deserialize(serialized: Buffer) {
         const proto = pb.decode(serialized);
         switch (proto[2]) {
@@ -46,6 +47,7 @@ export abstract class Message implements Quotable, Forwardable {
         this.rand = proto[3]?.[1]?.[1]?.[3] || uuid2rand(head[7]);
         this.font = body[1]?.[1]?.[9]?.toString() || 'unknown';
         this.parsed = parse(body[1], head[2]);
+        this.mentions = this.parsed.mentions;
         this.message = this.parsed.message as Sendable;
         this.raw_message = this.parsed.brief;
 
@@ -214,7 +216,7 @@ export class ForwardMessage implements Forwardable {
     /** 消息内容 */
     message: Sendable;
     raw_message: string;
-
+    mentions: number[];
     /** 反序列化一条转发消息 */
     static deserialize(serialized: Buffer) {
         return new ForwardMessage(pb.decode(serialized));
@@ -229,6 +231,7 @@ export class ForwardMessage implements Forwardable {
         this.nickname = head[14]?.toString() || head[9]?.[4]?.toString() || '';
         this.group_id = head[9]?.[1];
         this.parsed = parse(proto[3][1]);
+        this.mentions = this.parsed.mentions;
         this.message = this.parsed.message as Sendable;
         this.raw_message = this.parsed.brief;
         lock(this, 'proto');

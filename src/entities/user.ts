@@ -38,6 +38,13 @@ export class User extends Contactable {
         return { code: packet[3], msg: packet[5].toString() };
     }
 }
+export class UserMap<K = string | symbol, T extends User.Info = any> extends Map<K, T> {
+    getByUid(uid: string) {
+        for (const [_, info] of this) {
+            if (info.uid === uid) return info;
+        }
+    }
+}
 export namespace User {
     export interface Info {
         user_id: number;

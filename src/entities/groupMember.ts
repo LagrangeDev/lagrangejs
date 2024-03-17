@@ -32,6 +32,11 @@ export class GroupMember extends User {
         }
         return member;
     }
+
+    /**
+     * 禁言群成员
+     * @param duration 禁言时长 单位秒
+     */
     async mute(duration: number) {
         const body = pb.encode({
             1: this.gid,
@@ -45,11 +50,11 @@ export class GroupMember extends User {
         const rsp = pb.decode(packet);
         return !rsp[3];
     }
-    async kick(rejectAddition: boolean) {
+    async kick(rejectAddition: boolean = false) {
         const body = pb.encode({
             1: this.gid,
             3: this.uid,
-            4: rejectAddition,
+            4: rejectAddition ? 1 : 0,
             5: '',
         });
         const packet = await this.c.sendOidbSvcTrpcTcp(0x8a0, 1, body);
@@ -57,13 +62,13 @@ export class GroupMember extends User {
         return !rsp[3];
     }
 
-    async setAdmin(isAdmin?: boolean) {
+    async setAdmin(isAdmin: boolean = false) {
         const body = pb.encode({
             1: this.gid,
             2: this.uid,
-            3: isAdmin,
+            3: isAdmin ? 1 : 0,
         });
-        const packet = await this.c.sendOidbSvcTrpcTcp(0x8a0, 1, body);
+        const packet = await this.c.sendOidbSvcTrpcTcp(0x1096, 1, body);
         const rsp = pb.decode(packet);
         return !rsp[3];
     }
@@ -94,7 +99,21 @@ export class GroupMember extends User {
         const time = rsp[3];
         return { seq, time };
     }
-    async renameGroupMember(targetName: string) {
+    async setTitle(title: string, expire_in: number = -1) {
+        const body = pb.encode({
+            1: this.gid,
+            3: {
+                1: this.uid,
+                5: title,
+                6: expire_in,
+                7: title,
+            },
+        });
+        const packet = await this.c.sendOidbSvcTrpcTcp(0x8fc, 2, body);
+        const rsp = pb.decode(packet);
+        return !rsp[3];
+    }
+    async setName(targetName: string) {
         const body = pb.encode({
             1: this.gid,
             3: {

@@ -7,6 +7,7 @@ import { drop } from '../errors';
 import * as pb from '../core/protobuf';
 import { GroupMember } from './groupMember';
 import { FileSystem } from './fileSystem';
+import { UserMap } from '@/entities/user';
 const groupCacheMap: WeakMap<Group.Info, Group> = new WeakMap<Group.Info, Group>();
 export class Group extends Contactable {
     fileSystem: FileSystem;
@@ -151,7 +152,7 @@ export class Group extends Contactable {
 export namespace Group {
     export async function fetchMember(this: Client, gid: number) {
         let token: string | null = null;
-        if (!this.memberList.has(gid)) this.memberList.set(gid, new Map());
+        if (!this.memberList.has(gid)) this.memberList.set(gid, new UserMap());
         try {
             while (true) {
                 const request = pb.encode({

@@ -11,6 +11,8 @@ import { Friend } from './entities/friend';
 import { Group } from './entities/group';
 import { GroupMember } from './entities/groupMember';
 import { LoginErrorCode } from './errors';
+import { UserMap } from '@/entities/user';
+import { Sendable } from '@/message/elements';
 
 export interface Client extends BaseClient {
     on<T extends keyof EventMap>(event: T, listener: EventMap<this>[T]): this;
@@ -49,9 +51,9 @@ export class Client extends BaseClient {
     readonly config: Required<Config>;
     readonly token: SavedToken;
 
-    readonly friendList = new Map<number, Friend.Info>();
+    readonly friendList = new UserMap<number, Friend.Info>();
     readonly groupList = new Map<number, Group.Info>();
-    readonly memberList = new Map<number, Map<number, GroupMember.Info>>();
+    readonly memberList = new Map<number, UserMap<number, GroupMember.Info>>();
     get cacheDir() {
         const dir = path.resolve(this.directory, '../image');
         if (!fs.existsSync(dir)) fs.mkdirSync(dir);

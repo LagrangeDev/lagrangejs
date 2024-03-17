@@ -153,8 +153,7 @@ export class Converter {
             display = text || info?.nickname || String(qq);
             uid = info?.uid || '';
         }
-        if (!display.startsWith("@"))
-          display = '@' + display;
+        if (!display.startsWith('@')) display = '@' + display;
 
         const reserve = pb.encode({
             // 不走有的没的的buffer了

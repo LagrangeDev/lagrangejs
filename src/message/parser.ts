@@ -24,7 +24,7 @@ export class Parser {
     atme = false;
     atall = false;
     imagePrefix = '';
-
+    mentions: number[] = [];
     private exclusive = false;
     private it?: IterableIterator<[number, pb.Proto]>;
 
@@ -138,6 +138,7 @@ export class Parser {
                         this.atall = true;
                     } else {
                         elem.qq = buf.readUInt32BE(7);
+                        this.mentions.push(elem.qq);
                         if (elem.qq === this.uin) this.atme = true;
                     }
                     brief = brief || '@' + elem.qq;
