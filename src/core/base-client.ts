@@ -403,12 +403,13 @@ export class BaseClient extends EventEmitter {
 
         const resp = await this.sendUni('trpc.login.ecdh.EcdhService.SsoKeyExchange', packet);
         const pbResp = pb.decode(resp);
-        const shareKey = this[ECDH256].exchange(pbResp[3].toBuffer());
-        const decrypted = aesGcmDecrypt(pbResp[1].toBuffer(), shareKey);
+        console.log(pbResp);
+        const shareKey = this[ECDH256].exchange(pbResp[3]?.toBuffer());
+        const decrypted = aesGcmDecrypt(pbResp[1]?.toBuffer(), shareKey);
         const pbDecrypted = pb.decode(decrypted);
 
-        this.sig.exchangeKey = pbDecrypted[1].toBuffer();
-        this.sig.keySig = pbDecrypted[2].toBuffer();
+        this.sig.exchangeKey = pbDecrypted[1]?.toBuffer();
+        this.sig.keySig = pbDecrypted[2]?.toBuffer();
 
         this.emit('internal.verbose', `key xchg successfully, session: ${pbDecrypted[3]}s`, LogLevel.Debug);
     }
@@ -538,7 +539,7 @@ async function register(this: BaseClient) {
         });
         const response = await this.sendUni('trpc.qq_new_tech.status_svc.StatusService.Register', packet);
         const pbResponse = pb.decode(response);
-        const resMsg = pbResponse[2].toString()
+        const resMsg = pbResponse[2].toString();
 
         if (resMsg === 'register success') {
             this[IS_ONLINE] = true;
@@ -564,8 +565,8 @@ async function register(this: BaseClient) {
                     },
                 }),
             );
-        } else if (resMsg == "in kick storage,please logout!") {
-            this.emit('internal.error.login', pbResponse[1], `[禁止登录]请删除 device-${this.uin}.json 重新登录`)
+        } else if (resMsg == 'in kick storage,please logout!') {
+            this.emit('internal.error.login', pbResponse[1], `[禁止登录]请删除 device-${this.uin}.json 重新登录`);
         } else {
             this.emit('internal.error.token');
         }

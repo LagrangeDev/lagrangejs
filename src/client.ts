@@ -257,6 +257,9 @@ export interface Config {
     autoServer?: boolean;
     /** 签名API地址 */
     signApiAddr?: string;
+    /** ffmpeg */
+    ffmpegPath?: string;
+    ffprobePath?: string;
 }
 
 export interface SavedToken {

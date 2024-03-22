@@ -1,4 +1,9 @@
 import pb from './protobuf.min.js';
+import * as zlib from 'zlib';
+import fs from 'fs';
+import path from 'path';
+import process from 'process';
+import { lock } from '@/core/constants';
 
 export interface Encodable {
     [tag: number]: any;
@@ -6,55 +11,52 @@ export interface Encodable {
 
 export class Proto implements Encodable {
     [tag: number]: any;
+
     get length() {
         return this.encoded.length;
     }
-    constructor(
-        private encoded: Buffer,
-        decoded?: Proto,
-    ) {
-        if (decoded) Reflect.setPrototypeOf(this, decoded);
+
+    constructor(private encoded: Buffer) {
+        const assignObj = _decode(new pb.Reader(encoded));
+        Object.assign(this, assignObj);
+        lock(this, 'encoded');
     }
+
     toString() {
         return this.encoded.toString();
     }
+
     toHex() {
         return this.encoded.toString('hex');
     }
+
     toBase64() {
         return this.encoded.toString('base64');
     }
+
     toBuffer() {
         return this.encoded;
     }
-    toJSON() {
-        const toJSON = (pb: any) => {
-            if (!(pb instanceof Proto)) return pb;
-            const keys = Object.keys(pb);
-            if (keys.length === 1 && keys[0] === 'encoded') {
-                try {
-                    pb = decode(pb.encoded);
-                } catch {
-                    return pb.encoded.toString();
-                }
-            }
-            if (!pb) return pb;
-            const result: Record<string, any> = {};
-            for (const k of Object.keys(pb)) {
-                if (!/^\d+$/.test(k)) continue;
-                const key = Number(k);
-                if (Array.isArray(pb[key])) return pb[key].map(toJSON);
-                else if (pb[key] instanceof Proto) result[key] = pb[key].toJSON();
-                else if (pb[key] && typeof pb[key] === 'object') result[key] = toJSON(pb[key]);
-                else if (Buffer.isBuffer(pb[key])) result[key] = pb[key].toString('hex');
-                else result[key] = pb[key];
-            }
-            return result;
-        };
-        return toJSON(this);
-    }
+
     [Symbol.toPrimitive]() {
         return this.toString();
+    }
+
+    toJSON() {
+        return Object.fromEntries(
+            Object.keys(this)
+                .filter(key => /^\d+$/.test(key))
+                .map(key => {
+                    let value = this[Number(key)];
+                    if (typeof value === 'bigint') value = String(value) + 'u';
+                    if (Buffer.isBuffer(value)) return [key, `protobuf://${value.toString('hex')}`];
+                    return [key, value];
+                }),
+        );
+    }
+
+    save(prefix: string = '', fn: (pb: Proto) => any = pb => JSON.stringify(pb.toJSON(), null, 2)) {
+        fs.writeFileSync(path.resolve(process.cwd(), 'data', `${prefix}.json`), fn(this), 'utf8');
     }
 }
 
@@ -64,7 +66,17 @@ function _encode(writer: pb.Writer, tag: number, value: any) {
     if (typeof value === 'number') {
         type = Number.isInteger(value) ? 0 : 1;
     } else if (typeof value === 'string') {
-        value = Buffer.from(value);
+        if (value.startsWith('zip://')) value = zlib.gzipSync(Buffer.from(value.substring(6)));
+        else if (/^\d+u$/.test(value)) {
+            const tmp = new pb.util.Long();
+            const val = BigInt(value.substring(0, -1));
+            tmp.unsigned = false;
+            tmp.low = Number(val & 0xffffffffn);
+            tmp.high = Number((val & 0xffffffff00000000n) >> 32n);
+            value = tmp;
+            type = 0;
+        } else if (value.startsWith('protobuf://')) value = Buffer.from(value.substring(11), 'hex');
+        else value = Buffer.from(value);
     } else if (value instanceof Uint8Array) {
         //
     } else if (value instanceof Proto) {
@@ -103,7 +115,7 @@ export function encode(obj: Encodable) {
     for (const tag of Object.keys(obj).map(Number)) {
         const value = obj[tag];
         if (Array.isArray(value)) {
-            for (const v of value) _encode(writer, tag, v);
+            for (let v of value) _encode(writer, tag, v);
         } else {
             _encode(writer, tag, value);
         }
@@ -117,15 +129,13 @@ function long2int(long: pb.Long) {
     const int = Number(bigint);
     return Number.isSafeInteger(int) ? int : bigint;
 }
-
-export function decode(encoded: Buffer): Proto {
-    const result = new Proto(encoded);
-    const reader = new pb.Reader(encoded);
+function _decode(reader: pb.Reader): Encodable {
+    const result = {} as Encodable;
     while (reader.pos < reader.len) {
         const k = reader.uint32();
         const tag = k >> 3,
             type = k & 0b111;
-        let value, decoded;
+        let value;
         switch (type) {
             case 0:
                 value = long2int(reader.int64());
@@ -136,9 +146,17 @@ export function decode(encoded: Buffer): Proto {
             case 2:
                 value = Buffer.from(reader.bytes());
                 try {
-                    decoded = decode(value);
-                } catch {}
-                value = new Proto(value, decoded);
+                    value = new Proto(value);
+                    if (!Object.keys(value).length) throw new Error('empty proto');
+                } catch (e) {
+                    let temp: string | Buffer = value.toString(); // 先尝试转utf8，不成功再转hex
+                    if (temp.includes('\x00')) {
+                        if (value[0] == 0x78 && value[1] == 0x9c)
+                            temp = `zip://${zlib.unzipSync(value as Buffer).toString()}`;
+                        else temp = value as Buffer;
+                    }
+                    value = temp;
+                }
                 break;
             case 5:
                 value = reader.fixed32();
@@ -156,4 +174,7 @@ export function decode(encoded: Buffer): Proto {
         }
     }
     return result;
+}
+export function decode(encoded: Buffer): Proto {
+    return new Proto(encoded);
 }

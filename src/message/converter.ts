@@ -329,8 +329,8 @@ export class Converter {
         const img = new Image(elem, contactable.dm, contactable.c.cacheDir);
         await contactable.uploadImages([img]);
 
-        const compat = img.compatElems;
-        const msgInfo = img.commonElems;
+        const compat = img.proto;
+        const msgInfo = img.msgInfo;
 
         this.imgs.push(img);
         this.elems.push(contactable.dm ? { 4: compat } : { 8: compat });
@@ -346,12 +346,25 @@ export class Converter {
 
     private async reply(elem: ReplyElem) {}
 
-    private async record(elem: RecordElem) {
+    private async record(elem: RecordElem, contactable: Contactable) {
+        elem = await contactable.uploadRecord(elem);
+        const file = String(elem.file);
+        if (!file.startsWith('protobuf://')) throw new Error('非法的语音元素: ' + file);
+        this.rich[4] = Buffer.from(file.replace('protobuf://', ''), 'base64');
         this.brief += '[语音]';
         this.is_chain = false;
     }
 
-    private async video(elem: VideoElem) {
+    private async video(elem: VideoElem, contactable: Contactable) {
+        let file = String(elem.file);
+        if (!file.startsWith('protobuf://')) throw new Error('非法的视频元素: ' + file);
+        const buf = Buffer.from(file.replace('protobuf://', ''), 'base64');
+        this.elems.push({ 19: buf });
+        this.elems.push({
+            1: {
+                1: '你的QQ暂不支持查看视频短片，请期待后续版本。',
+            },
+        });
         this.brief += '[视频]';
         this.is_chain = false;
     }

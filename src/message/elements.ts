@@ -67,7 +67,8 @@ export interface MessageElemMap {
          * need ffmpeg and ffprobe
          * @type {string} filepath such as "/tmp/1.mp4"
          */
-        file: string;
+        file: string | Buffer;
+        temp?: boolean;
         name?: string;
         fid?: string;
         md5?: string;

@@ -66,7 +66,8 @@ export function parseImageFileParam(file: string) {
 
 export class Image {
     /** 最终用于发送的对象 */
-    proto: { [tag: number]: any } = {};
+    proto?: pb.Proto;
+    msgInfo?: pb.Proto;
     /** 用于上传的文件流 */
     readable?: Readable;
     /** 实例化后必须等待此异步任务完成后才能上传图片 */
@@ -81,9 +82,6 @@ export class Image {
     type = 1000;
     origin?: boolean;
     private asface?: boolean;
-
-    compatElems?: pb.Proto;
-    commonElems?: pb.Proto;
 
     /** 缓存文件路径 */
     private cachefile?: string;
