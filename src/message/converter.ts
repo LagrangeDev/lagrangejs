@@ -356,6 +356,7 @@ export class Converter {
     }
 
     private async video(elem: VideoElem, contactable: Contactable) {
+        elem = await contactable.uploadVideo(elem);
         let file = String(elem.file);
         if (!file.startsWith('protobuf://')) throw new Error('非法的视频元素: ' + file);
         const buf = Buffer.from(file.replace('protobuf://', ''), 'base64');
