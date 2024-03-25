@@ -150,7 +150,7 @@ function _decode(reader: pb.Reader): Encodable {
                     if (!Object.keys(value).length) throw new Error('empty proto');
                 } catch (e) {
                     let temp: string | Buffer = value.toString(); // 先尝试转utf8，不成功再转hex
-                    if (temp.includes('\x00')) {
+                    if (temp.includes('\x00') || temp.includes('\ufffd')) {
                         if (value[0] == 0x78 && value[1] == 0x9c)
                             temp = `zip://${zlib.unzipSync(value as Buffer).toString()}`;
                         else temp = value as Buffer;
