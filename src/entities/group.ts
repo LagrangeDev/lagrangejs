@@ -81,12 +81,6 @@ export class Group extends Contactable {
     }
 
     /**
-     * 上传语音
-     * @param elem
-     */
-    async uploadRecord(elem: RecordElem) {}
-
-    /**
      * 解析语音内容
      */
     async downloadRecord() {}

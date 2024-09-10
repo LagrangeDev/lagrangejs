@@ -403,9 +403,11 @@ export class BaseClient extends EventEmitter {
 
         const resp = await this.sendUni('trpc.login.ecdh.EcdhService.SsoKeyExchange', packet);
         const pbResp = pb.decode(resp);
-        console.log(pbResp);
-        const shareKey = this[ECDH256].exchange(pbResp[3]?.toBuffer());
-        const decrypted = aesGcmDecrypt(pbResp[1]?.toBuffer(), shareKey);
+        const pbResp1 = pbResp[1]?.toBuffer()
+        const pbResp3 = pbResp[3]?.toBuffer()
+        if (!(pbResp1 && pbResp3)) return
+        const shareKey = this[ECDH256].exchange(pbResp3);
+        const decrypted = aesGcmDecrypt(pbResp1, shareKey);
         const pbDecrypted = pb.decode(decrypted);
 
         this.sig.exchangeKey = pbDecrypted[1]?.toBuffer();
